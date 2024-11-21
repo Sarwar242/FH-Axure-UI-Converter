@@ -1,0 +1,358 @@
+﻿@model FileUploadViewModel
+
+@{
+    ViewData["Title"] = "Axure Template Converter - The New Beginning";
+}
+
+<div class="max-w-5xl mx-auto mt-8 mb-8">
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <!-- Header -->
+        <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
+            <h2 class="text-xl font-semibold text-gray-800 text-center">
+                Axure Template Converter - The New Beginning
+            </h2>
+            <p class="mt-2 text-center text-gray-600">
+                Convert Axure[Html] to Blazor Components
+            </p>
+        </div>
+
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-success shadow-lg m-4" id="successMessage" role="alert">
+                <div class="flex flex-col w-full">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="bi bi-check-circle-fill text-2xl me-2"></i>
+                            <h4 class="font-bold">Conversion Completed Successfully!</h4>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <div class="mt-2">
+                        <p class="font-medium" id="timerResult"></p>
+                        <hr class="my-2">
+                        <p class="font-bold">Files have been saved to:</p>
+                        @foreach (var directory in TempData["Message"].ToString().Split('\n'))
+                        {
+                            if (!string.IsNullOrWhiteSpace(directory))
+                            {
+                                <div class="ml-2">
+                                    <i class="bi bi-folder me-2"></i>
+                                    <span>@directory.Trim()</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+
+        <!-- Form -->
+        <form asp-action="UxcConverter"
+              asp-controller="File"
+              method="post"
+              enctype="multipart/form-data"
+              class="p-6 space-y-6"
+              id="conversionForm">
+            @Html.AntiForgeryToken()
+            <!-- File Upload Section -->
+            <div class="space-y-4">
+                <div class="w-full">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Upload Files
+                        <span class="text-gray-500 font-normal ml-2">
+                            (Select html files)
+                        </span>
+                    </label>
+                    <div class="w-full">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input type="file"
+                                   name="HtmlFiles"
+                                   class="w-full"
+                                   multiple
+                                   id="fileInput" />
+                            <p class="mt-2 text-sm text-gray-500">
+                                Drag and drop files here or click to browse
+                            </p>
+                            <p class="mt-1 text-xs text-gray-400" id="fileList">
+                                No files selected
+                            </p>
+                        </div>
+                        <span asp-validation-for="HtmlFiles"
+                              class="text-red-500 text-sm">
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Directory Inputs Section -->
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Output Directory
+                        <span class="text-gray-500 font-normal ml-2">
+                            (For Models & Controllers)
+                        </span>
+                    </label>
+                    <input type="text"
+                           name="SaveDirectory"
+                           id="saveDirectory"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g., C:\Project\Output\Backend" />
+                    <p class="mt-1 text-xs text-gray-500">
+                        Specify the directory where converted file will be saved
+                    </p>
+                    <span asp-validation-for="SaveDirectory"
+                          class="text-red-500 text-sm">
+                    </span>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex flex-col items-center pt-4 space-y-2">
+                <button type="submit"
+                        class="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    Convert Files
+                </button>
+                <p class="text-sm text-gray-500">
+                    The conversion process may take a few moments depending on the number of files
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Converting Files</h3>
+                <p class="text-gray-600 mb-4">Please wait while your files are being processed...</p>
+                <div class="bg-gray-100 rounded-md py-2 px-4 inline-block">
+                    <span id="timer" class="font-mono text-sm">Time Elapsed: 00:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let timerInterval;
+        let startTime;
+        let isSubmitting = false;
+
+        // Handle file selection display
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            const fileList = Array.from(e.target.files).map(file => file.name).join(', ');
+            document.getElementById('fileList').textContent = fileList || 'No files selected';
+        });
+
+        function startTimer() {
+            startTime = new Date().getTime();
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(function () {
+                const now = new Date().getTime();
+                const elapsed = now - startTime;
+                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+                const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                const timerElement = document.getElementById('timer');
+                if (timerElement) {
+                    timerElement.textContent = `Time Elapsed: ${formattedTime}`;
+                }
+            }, 1000);
+        }
+
+        // Form submission handler
+        document.getElementById('conversionForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (isSubmitting) return;
+            isSubmitting = true;
+
+            // Set a flag in sessionStorage to indicate we're converting
+            sessionStorage.setItem('isConverting', 'true');
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.remove('hidden');
+            startTimer();
+
+            try {
+                const formData = new FormData(this);
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': token
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
+
+                // Calculate final time
+                const endTime = new Date().getTime();
+                const totalTime = endTime - startTime;
+                const minutes = Math.floor((totalTime % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((totalTime % (1000 * 60)) / 1000);
+                const finalTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                // Remove the converting flag
+                sessionStorage.removeItem('isConverting');
+
+                // Show success message
+                showSuccessMessage(result, finalTime);
+
+                // Hide loading overlay after 2 seconds
+                setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error during conversion:', error);
+                alert('An error occurred during the conversion process. Please try again.');
+                sessionStorage.removeItem('isConverting');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+                isSubmitting = false;
+            }
+        });
+
+        function showSuccessMessage(result, finalTime) {
+            // Remove any existing success message
+            const oldMessage = document.getElementById('successMessage');
+            if (oldMessage) {
+                oldMessage.remove();
+            }
+
+            const successHTML = `
+                <div class="alert alert-success shadow-lg m-4" id="successMessage" role="alert">
+                    <div class="flex flex-col w-full">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="bi bi-check-circle-fill text-2xl me-2"></i>
+                                <h4 class="font-bold">Conversion Completed Successfully!</h4>
+                            </div>
+                            <button type="button" class="btn-close" onclick="closeAndReset()"></button>
+                        </div>
+                        <div class="mt-2">
+                            <p class="font-medium">Completed in: ${finalTime}</p>
+                            <hr class="my-2">
+                            <p class="font-bold">Files have been saved to:</p>
+                            ${result.message.split('\n')
+                    .filter(dir => dir.trim() && !dir.includes('Files have been saved to:'))
+                    .map(dir => `
+                                    <div class="ml-2">
+                                        <i class="bi bi-folder me-2"></i>
+                                        <span>${dir.trim()}</span>
+                                    </div>
+                                `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Insert success message before the form
+            const form = document.getElementById('conversionForm');
+            form.insertAdjacentHTML('afterend', successHTML);
+
+            // Auto-hide message after 25 seconds
+            setTimeout(() => {
+                const msg = document.getElementById('successMessage');
+                if (msg) {
+                    msg.remove();
+                    resetForm();
+                }
+            }, 20000);
+        }
+
+        function closeAndReset() {
+            const msg = document.getElementById('successMessage');
+            if (msg) {
+                msg.remove();
+            }
+            resetForm();
+            window.location.reload();
+        }
+
+        function resetForm() {
+            const form = document.getElementById('conversionForm');
+            form.reset();
+
+            // Reset file list text
+            const fileList = document.getElementById('fileList');
+            if (fileList) {
+                fileList.textContent = 'No files selected';
+            }
+
+            // Clear validation messages if any
+            const validationMessages = document.querySelectorAll('[class*="validation-"]');
+            validationMessages.forEach(msg => msg.textContent = '');
+        }
+
+        // Handle drag and drop
+        const dropZone = document.querySelector('.border-dashed');
+        if (dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropZone.classList.add('border-blue-500', 'bg-blue-50');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+        }
+
+        // Check for page load/reload
+        window.addEventListener('load', function () {
+            // If we weren't in the middle of converting, clear any success messages
+            if (!sessionStorage.getItem('isConverting')) {
+                const successMessage = document.getElementById('successMessage');
+                if (successMessage) {
+                    successMessage.remove();
+                }
+            }
+
+            // Clean up the storage
+            sessionStorage.removeItem('isConverting');
+        });
+
+        // Cleanup on page events
+        window.addEventListener('beforeunload', () => {
+            if (timerInterval) clearInterval(timerInterval);
+        });
+
+        window.addEventListener('error', () => {
+            if (timerInterval) clearInterval(timerInterval);
+        });
+    </script>
+}

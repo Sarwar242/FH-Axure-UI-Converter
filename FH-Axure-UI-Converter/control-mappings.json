@@ -1,0 +1,179 @@
+{
+  "Components": [
+    {
+      "Name": "TextBox",
+      "Type": "UXC_TextBox",
+      "Description": "Standard text input component",
+      "HasLabelText": true,
+      "HtmlClasses": [ "text_field"],
+      "DefaultAttributes": {
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id",
+          "Required": true
+        },
+        //"data-label": {
+        //  "SourceAttribute": "data-label",
+        //  "TargetAttribute": "Label_Text"
+        //},
+        "class": {
+          "SourceAttribute": "class",
+          "TargetAttribute": "CssClass",
+          "Transformer": "AppendCssClass"
+        }
+      },
+      "Events": [
+        {
+          "EventName": "OnChanged",
+          "SourceAttribute": "onchange",
+          "TargetEventName": "ValueChanged",
+          "RequiresStateHasChanged": true
+        }
+      ],
+      "RequiredVariables": [
+        "{id}:string:\"\""
+      ]
+    },
+    {
+      "Name": "AmountBox",
+      "Type": "UXC_Amount",
+      "Description": "Numeric input for currency amounts",
+      "HasLabelText": true,
+      "HtmlClasses": [ "text_field", "ax_default" ],
+      "DefaultAttributes": {
+        "DecimalPoint": "2",
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id",
+          "Required": true
+        },
+        //"data-label": {
+        //  "SourceAttribute": "data-label",
+        //  "TargetAttribute": "Label_Text"
+        //}
+      },
+      "RequiredVariables": [
+        "{id}:decimal:0.00m",
+        "IsHid{id}:string:\"\"",
+        "IsEnable{id}:bool:true"
+      ]
+    },
+    {
+      "Name": "Dropdown",
+      "Type": "UXC_Dynamic_Dropdown",
+      "Description": "Dynamic dropdown with data binding",
+      "HasLabelText": true,
+      "HtmlClasses": [ "droplist"],
+      "DefaultAttributes": {
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id"
+        },
+        "ls_sql2populateoptions": {
+          "SourceAttribute": "LS_SQL2PopulateOptions",
+          "TargetAttribute": "ProcedureName"
+        }
+      },
+      "Events": [
+        {
+          "EventName": "OnSelectedIndexChanged",
+          "SourceAttribute": "onselectedindexchanged",
+          "TargetEventName": "SelectedValueChanged",
+          "RequiresStateHasChanged": true
+        }
+      ],
+      "RequiredVariables": [
+        "{id}:string:\"\"",
+        "UXCDropDown{id}:List<Dropdown>:new()",
+        "{id}Key:Guid:Guid.NewGuid()"
+      ]
+    },
+    {
+      "Name": "DataGrid",
+      "Type": "UXC_DataGrid",
+      "Description": "Data grid with CRUD operations",
+      "HasLabelText": true,
+      "HtmlClasses": [ "grid" ],
+      "DefaultAttributes": {
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id"
+        },
+        "onselectedindexchanged": {
+          "SourceAttribute": "onselectedindexchanged",
+          "TargetAttribute": "OnFHEditClick"
+        },
+        "onrowdeleting": {
+          "SourceAttribute": "onrowdeleting",
+          "TargetAttribute": "OnFHDeleteClick"
+        }
+      },
+      "RequiredVariables": [
+        "IsHid{id}:bool:false",
+        "{id}SelectedColumns:List<string>:new()",
+        "{id}CustomColumnNames:Dictionary<string,string>:new()",
+        "{id}Key:Guid:Guid.NewGuid()"
+      ]
+    },
+    {
+      "Name": "Panel",
+      "Type": "div",
+      "Description": "Container panel with title",
+      "HasLabelText": true,
+      "IsContainer": true,
+      "HtmlClasses": [ "box_1", "box_2", "box_3" ],
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "id"
+        },
+        "groupingtext": {
+          "SourceAttribute": "GroupingText",
+          "TargetAttribute": "data-title"
+        }
+      },
+      "Styles": {
+        "default": "row border border-dark my-2"
+      },
+      "RequiredVariables": [
+        "IsHid{id}:bool:false"
+      ]
+    },
+    {
+      "Name": "Button",
+      "Type": "button",
+      "Description": "Action button",
+      "HasLabelText": true,
+      "HtmlClasses": [ "button", "primary_button" ],
+      "DefaultAttributes": {
+        "class": "btn btn-sm btn-outline-info"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "id"
+        },
+        "onclick": {
+          "SourceAttribute": "onclick",
+          "TargetAttribute": "@onclick"
+        }
+      },
+      "RequiredVariables": [
+        "IsHid{id}:bool:false",
+        "IsEnable{id}:bool:false"
+      ]
+    }
+  ]
+}
