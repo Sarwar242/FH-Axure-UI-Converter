@@ -14,11 +14,11 @@ builder.Services.AddSingleton<IPrimeConverter>(sp =>
 });
 
 
-var configFolder = Path.Combine(Directory.GetCurrentDirectory(), "Mappings");
-foreach (var file in Directory.GetFiles(configFolder, "*.json"))
-{
-    builder.Configuration.AddJsonFile(file, optional: false, reloadOnChange: true);
-}
+//var configFolder = Path.Combine(Directory.GetCurrentDirectory(), "Mappings");
+//foreach (var file in Directory.GetFiles(configFolder, "*.json"))
+//{
+//    builder.Configuration.AddJsonFile(file, optional: false, reloadOnChange: true);
+//}
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

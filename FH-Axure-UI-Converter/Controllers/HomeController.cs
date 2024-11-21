@@ -67,7 +67,7 @@ public class HomeController : Controller
 
         foreach (var uploadedFile in model.HtmlFiles.Where(f => f.FileName.EndsWith(".html", StringComparison.OrdinalIgnoreCase)))
         {
-            var analysis = await AnalyzeAspxFile(uploadedFile);
+            //var analysis = await AnalyzeAspxFile(uploadedFile);
             fileAnalysis[uploadedFile.FileName] = (uploadedFile);
         }
 
@@ -75,7 +75,7 @@ public class HomeController : Controller
         foreach (var entry in fileAnalysis)
         {
             string componentName = Path.GetFileNameWithoutExtension(entry.Key);
-            componentName = Regex.Replace(componentName, "^(?:BU_|bu_)", "", RegexOptions.IgnoreCase);
+            //componentName = Regex.Replace(componentName, "^(?:BU_|bu_)", "", RegexOptions.IgnoreCase);
 
             componentNameMap[entry.Key] = componentName;
         }
@@ -84,7 +84,8 @@ public class HomeController : Controller
         foreach (var entry in fileAnalysis)
         {
             var aspxFile = entry.Value;
-            bool isPopup = popupComponents.Contains(componentNameMap[entry.Key]);
+            //bool isPopup = popupComponents.Contains(componentNameMap[entry.Key]);            
+            bool isPopup = false;
 
             var blazorContent = await ConvertAspx(aspxFile, isPopup, componentNameMap[entry.Key], popupComponents);
             var convertedFilePath = "";

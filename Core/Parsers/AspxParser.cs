@@ -553,7 +553,8 @@ public class AspxParser
         if (dataLabel.Contains("details")) return "Details";
         return "Other";
     }
-private HtmlNode FindContentRoot(HtmlNode rootNode)
+
+private HtmlNode FindContentRoot(HtmlNode rootNode)
     {
         // First look for the base div since this is where main content starts
         var baseDiv = rootNode.Descendants("div")
