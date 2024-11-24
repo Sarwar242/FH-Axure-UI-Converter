@@ -165,43 +165,43 @@ function triggerHiddenButtonClick() {{
         }
         builder.AppendLine();
         // 4. Form and control state variables
-        foreach (var control in analysis.Controls)
-        {
-            var controlId = control.Attributes.GetValueOrDefault("id", "");
-            if (!string.IsNullOrEmpty(controlId))
-            {
-                // Determine variable type based on control type
-                var varType = control.Type.ToLowerInvariant() switch
-                {
-                    var t when t.Contains("amount") => "decimal",
-                    var t when t.Contains("number") => "int",
-                    var t when t.Contains("date") => "DateTime?",
-                    var t when t.Contains("checkbox") || t.Contains("switch") => "bool",
-                    _ => "string"
-                };
+        //foreach (var control in analysis.Controls)
+        //{
+        //    var controlId = control.Attributes.GetValueOrDefault("id", "");
+        //    if (!string.IsNullOrEmpty(controlId))
+        //    {
+        //        // Determine variable type based on control type
+        //        var varType = control.Type.ToLowerInvariant() switch
+        //        {
+        //            var t when t.Contains("amount") => "decimal",
+        //            var t when t.Contains("number") => "int",
+        //            var t when t.Contains("date") => "DateTime?",
+        //            var t when t.Contains("checkbox") || t.Contains("switch") => "bool",
+        //            _ => "string"
+        //        };
 
-                // Determine default value
-                var defaultValue = varType switch
-                {
-                    "decimal" => "0.00m",
-                    "int" => "0",
-                    "DateTime?" => "null",
-                    "bool" => "false",
-                    _ => "\"\""
-                };
+        //        // Determine default value
+        //        var defaultValue = varType switch
+        //        {
+        //            "decimal" => "0.00m",
+        //            "int" => "0",
+        //            "DateTime?" => "null",
+        //            "bool" => "false",
+        //            _ => "\"\""
+        //        };
 
-                // Add state variables
-                builder.AppendLine($"    private {varType} {controlId} = {defaultValue};");
-                builder.AppendLine($"    private string IsHid{controlId} = string.Empty;");
-                builder.AppendLine($"    private bool IsEnable{controlId} = true;");
+        //        // Add state variables
+        //        builder.AppendLine($"    private {varType} {controlId} = {defaultValue};");
+        //        builder.AppendLine($"    private string IsHid{controlId} = string.Empty;");
+        //        builder.AppendLine($"    private bool IsEnable{controlId} = true;");
 
-                // Add validation variables if needed
-                if (control.Attributes.GetValueOrDefault("required", "").ToLower() == "true")
-                {
-                    builder.AppendLine($"    private string {controlId}ValidationMessage = string.Empty;");
-                }
-            }
-        }
+        //        // Add validation variables if needed
+        //        if (control.Attributes.GetValueOrDefault("required", "").ToLower() == "true")
+        //        {
+        //            builder.AppendLine($"    private string {controlId}ValidationMessage = string.Empty;");
+        //        }
+        //    }
+        //}
         builder.AppendLine();
 
         // 5. Grid variables
@@ -647,6 +647,19 @@ function triggerHiddenButtonClick() {{
 
             _variables.Add(new VariableInfo("isUpdate", "bool", "false", "private", false));
             _variables.Add(new VariableInfo("gridModelId", "string", @"""1""", "private", false));
+        }
+        else if (mapping.Type.Equals("button", StringComparison.OrdinalIgnoreCase) &&
+            (control.InnerText.Contains("Ok", StringComparison.OrdinalIgnoreCase) || 
+            control.InnerText.Contains("Refresh", StringComparison.OrdinalIgnoreCase) || 
+            control.InnerText.Contains("Exit", StringComparison.OrdinalIgnoreCase)) && 
+            control.Attributes.GetValueOrDefault("class", "").Contains("primary_button", StringComparison.OrdinalIgnoreCase))
+        {
+            //pass
+        }
+        else if(mapping.Type.Equals("UXC_TextBox", StringComparison.OrdinalIgnoreCase) && (customControl == null || 
+            (customControl != null&&string.IsNullOrEmpty(customControl.LabelText))))
+        {
+            //pass
         }
         else
         {

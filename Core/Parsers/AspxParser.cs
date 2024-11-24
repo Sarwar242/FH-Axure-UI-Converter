@@ -7,7 +7,11 @@ namespace Core.Parsers;
 public class AspxParser
 {
     private readonly string _mappingFilePath;
-
+    private List<string> dataLabelsToSkip = new List<string>
+    {
+        "master_background","header_nav","logo","static_nav","user_info","setting","logout", "content_pannel",
+        "notification","Menu","search","nav","fav","home","square", "content_panel"
+    };
     public AspxParser(string mappingFilePath)
     {
         _mappingFilePath = mappingFilePath;
@@ -56,13 +60,16 @@ public class AspxParser
                 {
                     continue;
                 }
-                if (childNode.GetAttributeValue("id", "") != "baseId" &&
-                childNode.GetAttributeValue("class", "").Contains("ax_default", StringComparison.OrdinalIgnoreCase) &&
-                (HasChildWithDataLabel(childNode, "logout")|| HasChildWithDataLabel(childNode, "mainmenu")))
+                //if (childNode.GetAttributeValue("id", "") != "baseId" &&
+                //childNode.GetAttributeValue("class", "").Contains("ax_default", StringComparison.OrdinalIgnoreCase) &&
+                //(HasChildWithDataLabel(childNode, "logout")|| HasChildWithDataLabel(childNode, "mainmenu")))
+                //{
+                //    continue;
+                //}         
+                if (ShouldSkipByDataLabel(childNode))
                 {
                     continue;
-                }         
-                
+                }
                 
                 if (IsEffectivelyEmpty(childNode)) 
                     continue;
@@ -90,6 +97,36 @@ public class AspxParser
         return controls;
     }
     #region Helper Checker
+    private bool ShouldSkipByDataLabel(HtmlNode node)
+    {
+        // Get the data-label attribute of the current node
+        var currentDataLabel = node.GetAttributeValue("data-label", string.Empty);
+
+        // Check if the current node's data-label is in the skip list
+        if (!string.IsNullOrEmpty(currentDataLabel) &&
+            dataLabelsToSkip.Contains(currentDataLabel, StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Check child nodes for matching data-labels
+        //var childNodesWithDataLabel = node.SelectNodes(".//*[@data-label]");
+        //if (childNodesWithDataLabel != null)
+        //{
+        //    foreach (var childNode in childNodesWithDataLabel)
+        //    {
+        //        var dataLabel = childNode.GetAttributeValue("data-label", string.Empty);
+        //        if (!string.IsNullOrEmpty(dataLabel) &&
+        //            dataLabelsToSkip.Contains(dataLabel, StringComparer.OrdinalIgnoreCase))
+        //        {
+        //            return true;
+        //        }
+        //    }
+        //}
+
+        return false;
+    }
+
     private bool HasChildWithDataLabel(HtmlNode node, string dataLabel)
     {
         return node.SelectNodes($".//*[@data-label='{dataLabel}']")?.Any() ?? false;
@@ -142,6 +179,7 @@ public class AspxParser
     }
     #endregion
 
+    #region SpecAnalyzer
     private string DetermineControlType(HtmlNode node)
     {
         // Check class attributes for control type indicators
@@ -554,29 +592,20 @@ public class AspxParser
         return "Other";
     }
 
-private HtmlNode FindContentRoot(HtmlNode rootNode)
+    private HtmlNode FindContentRoot(HtmlNode rootNode)
     {
-        // First look for the base div since this is where main content starts
-        var baseDiv = rootNode.Descendants("div")
-                             .FirstOrDefault(n => n.GetAttributeValue("id", "") == "base");
-        if (baseDiv != null)
+        // First try to find div with id containing "base"
+        var mainPanel = rootNode.Descendants("div")
+                               .FirstOrDefault(n => n.GetAttributeValue("id", "")
+                                                   .Contains("base", StringComparison.OrdinalIgnoreCase));
+        if (mainPanel != null)
         {
-            // Look for first main content panel within base
-            var mainContent = baseDiv.Descendants("div")
-                                   .FirstOrDefault(n => n.GetAttributeValue("class", "")
-                                                       .Contains("ax_default") &&
-                                                    !n.GetAttributeValue("style", "")
-                                                     .Contains("display:none"));
-            if (mainContent != null)
-            {
-                return mainContent;
-            }
-            return baseDiv; // Return base if no main content found
+            return mainPanel;
         }
 
-        // Fallback to other strategies if no base div
-        return rootNode;
-    }    
+        // Fallback to body if no base div found
+        return rootNode.Descendants("body").FirstOrDefault() ?? rootNode;
+    }
 
     private List<CustomControl> AnalyzeCustomControls(HtmlNode contentRoot)
     {
@@ -705,4 +734,5 @@ private HtmlNode FindContentRoot(HtmlNode rootNode)
         if (classes.Contains("button")) return "Button";
         return null;
     }
+    #endregion
 }
