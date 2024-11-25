@@ -109,21 +109,6 @@ public class AspxParser
             return true;
         }
 
-        // Check child nodes for matching data-labels
-        //var childNodesWithDataLabel = node.SelectNodes(".//*[@data-label]");
-        //if (childNodesWithDataLabel != null)
-        //{
-        //    foreach (var childNode in childNodesWithDataLabel)
-        //    {
-        //        var dataLabel = childNode.GetAttributeValue("data-label", string.Empty);
-        //        if (!string.IsNullOrEmpty(dataLabel) &&
-        //            dataLabelsToSkip.Contains(dataLabel, StringComparer.OrdinalIgnoreCase))
-        //        {
-        //            return true;
-        //        }
-        //    }
-        //}
-
         return false;
     }
 
@@ -131,6 +116,7 @@ public class AspxParser
     {
         return node.SelectNodes($".//*[@data-label='{dataLabel}']")?.Any() ?? false;
     }    
+
     private bool HasChildWithClass(HtmlNode node, string className)
     {
         return node.SelectNodes($".//*[@class and contains(@class, '{className}')]")?.Any() ?? false;
@@ -146,6 +132,9 @@ public class AspxParser
         {
             // If it's an input element, div is not empty
             if (child.Name == "input")
+                return false;// If it's an input element, div is not empty
+
+            if (child.Name == "textarea")
                 return false;
 
             // If it's a div with "text" class, check for span content
@@ -184,13 +173,15 @@ public class AspxParser
     {
         // Check class attributes for control type indicators
         var classes = node.GetAttributeValue("class", "").Split(' ');
+        var type = node.GetAttributeValue("type", "").ToLower();
+        if (type.Contains("date")) return "Date";
         if (classes.Any(c => c.Contains("ax_default")))
         {
             if (classes.Contains("text_field")) return "TextBox";
             if (classes.Contains("droplist")) return "DropDown";
             if (classes.Contains("button") || classes.Contains("primary_button")) return "Button";
             if (classes.Contains("label")) return "Label";
-            if (classes.Contains("box_")|| classes.Contains("heading_")) return "Panel";
+            if (classes.Contains("box_") || classes.Contains("heading_")) return "Panel";
             if (classes.Contains("icon")) return "Image";
         }
 
@@ -241,6 +232,9 @@ public class AspxParser
         {
             return "Grid";
         }
+        if (type.Contains("date")) return "Date";
+        if (type.Contains("number")) return "Number";
+        if (type.Contains("file")) return "File";
         if (classes.Contains("text_field")) return "TextBox";
         if (classes.Contains("droplist")) return "DropDown";
         if (classes.Contains("button") || classes.Contains("primary_button")) return "Button";
@@ -396,39 +390,6 @@ public class AspxParser
         }
 
         return buttons;
-    }
-
-    private List<FormElementInfo> AnalyzeFormElements(HtmlDocument doc)
-    {
-        var formElements = new List<FormElementInfo>();
-        var elements = doc.DocumentNode.SelectNodes("//*[contains(@class, 'text_field') or contains(@class, 'droplist') or contains(@class, 'label')]");
-
-        if (elements != null)
-        {
-            foreach (var element in elements)
-            {
-                var formElement = new FormElementInfo
-                {
-                    ID = element.GetAttributeValue("id", null),
-                    Label = element.GetAttributeValue("data-label", null),
-                    Type = DetermineFormElementType(element),
-                    IsRequired = element.GetAttributeValue("class", "").Contains("required"),
-                    IsDisabled = element.GetAttributeValue("class", "").Contains("disabled")
-                };
-                formElements.Add(formElement);
-            }
-        }
-
-        return formElements;
-    }
-
-    private string DetermineFormElementType(HtmlNode element)
-    {
-        var classes = element.GetAttributeValue("class", "").Split(' ');
-        if (classes.Contains("text_field")) return "TextBox";
-        if (classes.Contains("droplist")) return "DropDown";
-        if (classes.Contains("label")) return "Label";
-        return "Other";
     }
 
     private List<NavigationInfo> AnalyzeNavigationElements(HtmlDocument doc)
@@ -620,11 +581,24 @@ public class AspxParser
             var classes = node.GetAttributeValue("class", "").Split(' ');
             var dataLabel = node.GetAttributeValue("data-label", "");
             var isDisabled = classes.Contains("disabled");
-            var controlType = DetermineControlType(classes);
+            var inputNode = node.SelectSingleNode("./input");
+            var textNode = node.SelectSingleNode("./textarea");
+            var typeInput = inputNode?.GetAttributeValue("type", "") ?? node.GetAttributeValue("type", "");
+            if (textNode != null)
+            {
+                typeInput = "textarea";
+            }
+  
+            var controlType = DetermineCustomControlType(classes, typeInput);
 
             // Skip if this ID or LabelId is already processed
             if (controls.Any(c => c.Id == node.Id || c.LabelId == node.Id))
+            {
+                var ct = controls.FirstOrDefault(c => c.Id == node.Id || c.LabelId == node.Id);
+                ct.Type = controlType;
                 continue;
+            }
+                
 
             if (controlType != null)
             {
@@ -651,7 +625,7 @@ public class AspxParser
 
                     if (fieldNode != null)
                     {
-                        var type = DetermineControlType(fieldNode.GetAttributeValue("class", "").Split(' '));
+                        var type = DetermineCustomControlType(fieldNode.GetAttributeValue("class", "").Split(' '), typeInput);
                         var fieldControl = new CustomControl
                         {
                             Id = fieldNode.Id,
@@ -726,10 +700,15 @@ public class AspxParser
         return controls;
     }
 
-    private string DetermineControlType(string[] classes)
+    private string DetermineCustomControlType(string[] classes, string typeInput)
     {
+        if (typeInput.Contains("date")) return "Date";
+        if (typeInput.Contains("number")) return "Number";
+        if (typeInput.Contains("file")) return "File";
+        if (typeInput.Contains("textarea")) return "TextArea";
         if (classes.Contains("label")) return "Label";
         if (classes.Contains("text_field")) return "TextBox";
+        if (classes.Contains("date")) return "Date";
         if (classes.Contains("droplist")) return "DropDown";
         if (classes.Contains("button")) return "Button";
         return null;

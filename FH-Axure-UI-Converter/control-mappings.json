@@ -5,7 +5,7 @@
       "Type": "UXC_TextBox",
       "Description": "Standard text input component",
       "HasLabelText": true,
-      "HtmlClasses": [ "text_field"],
+      "HtmlClasses": [ "text_field" ],
       "DefaultAttributes": {
         "Enable": "true"
       },
@@ -15,10 +15,109 @@
           "TargetAttribute": "Id",
           "Required": true
         },
-        //"data-label": {
-        //  "SourceAttribute": "data-label",
-        //  "TargetAttribute": "Label_Text"
+
+        "class": {
+          "SourceAttribute": "class",
+          "TargetAttribute": "CssClass",
+          "Transformer": "AppendCssClass"
+        }
+      },
+      "Events": [
+        {
+          "EventName": "OnChanged",
+          "SourceAttribute": "onchange",
+          "TargetEventName": "ValueChanged",
+          "RequiresStateHasChanged": true
+        }
+      ],
+      "RequiredVariables": [
+        "{id}:string:\"\""
+      ]
+    },
+    {
+      "Name": "TextArea",
+      "Type": "UXC_TxtArea",
+      "Description": "Standard text input component",
+      "HasLabelText": true,
+      "HtmlClasses": [ "text_field" ],
+      "DefaultAttributes": {
+        "Disable": "false"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id",
+          "Required": true
+        },
+
+        "class": {
+          "SourceAttribute": "class",
+          "TargetAttribute": "CssClass",
+          "Transformer": "AppendCssClass"
+        }
+      },
+      "Events": [
+        {
+          "EventName": "OnChanged",
+          "SourceAttribute": "onchange",
+          "TargetEventName": "ValueChanged",
+          "RequiresStateHasChanged": true
+        }
+      ],
+      "RequiredVariables": [
+        "{id}:string:\"\""
+      ]
+    },
+    {
+      "Name": "Date",
+      "Type": "UXC_Date",
+      "Description": "Standard date input component",
+      "HasLabelText": true,
+      "HtmlClasses": [ "text_field" ],
+      "DefaultAttributes": {
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id",
+          "Required": true
+        },
+
+        "class": {
+          "SourceAttribute": "class",
+          "TargetAttribute": "CssClass",
+          "Transformer": "AppendCssClass"
+        }
+      },
+      "Events": [
+        {
+          "EventName": "OnChanged",
+          "SourceAttribute": "onchange",
+          "TargetEventName": "ValueChanged",
+          "RequiresStateHasChanged": true
+        }
+      ],
+      "RequiredVariables": [
+        "{id}:string:\"\""
+      ]
+    },
+      {
+      "Name": "File",
+      "Type": "UXC_File",
+      "Description": "Standard file input component",
+      "HasLabelText": false,
+      "HtmlClasses": [ "text_field"],
+        "DefaultAttributes": {
+          "MultipleFile": "false"
+        },
+      "AttributeMappings": {
+        //"id": {
+        //  "SourceAttribute": "id",
+        //  "TargetAttribute": "Id",
+        //  "Required": true
         //},
+       
         "class": {
           "SourceAttribute": "class",
           "TargetAttribute": "CssClass",
@@ -45,6 +144,32 @@
       "HtmlClasses": [ "text_field", "ax_default" ],
       "DefaultAttributes": {
         "DecimalPoint": "2",
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id",
+          "Required": true
+        },
+        //"data-label": {
+        //  "SourceAttribute": "data-label",
+        //  "TargetAttribute": "Label_Text"
+        //}
+      },
+      "RequiredVariables": [
+        "{id}:decimal:0.00m",
+        "IsHid{id}:string:\"\"",
+        "IsEnable{id}:bool:true"
+      ]
+    },
+    {
+      "Name": "Number",
+      "Type": "UXC_Number",
+      "Description": "Numeric input for Numbers",
+      "HasLabelText": true,
+      "HtmlClasses": [ "text_field", "ax_default" ],
+      "DefaultAttributes": {
         "Enable": "true"
       },
       "AttributeMappings": {

@@ -4,7 +4,7 @@ public class VariableInfo
 {
     public string Name { get; set; }
     public string DataType { get; set; }
-    public string InitialValue { get; set; }
+    public string? InitialValue { get; set; }
     public string? AccessModifier { get; set; }
     public bool IsNullable { get; set; }
     public bool IsTracked { get; set; }

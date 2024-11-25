@@ -74,15 +74,8 @@ public class BlazorComponentGenerator
         builder.AppendLine();
 
         // Add common imports
-        builder.AppendLine("@using TRSSessionData.Models");
         builder.AppendLine("@using System.Text.Json");
         builder.AppendLine("@using Microsoft.AspNetCore.Components");
-
-        if (!isPopup)
-        {
-            builder.AppendLine("@using TRS_MMDeal.Models.Entities");
-        }
-
         builder.AppendLine("@rendermode InteractiveServer");
         builder.AppendLine();
     }
@@ -151,7 +144,6 @@ function triggerHiddenButtonClick() {{
         }
 
         // 3. Core variables
-        builder.AppendLine("    private TRSSession objTRSSession = new();");
         builder.AppendLine("    private string ErrorMessage = string.Empty;");
         builder.AppendLine();
         // Add control variables
@@ -242,15 +234,15 @@ function triggerHiddenButtonClick() {{
     }}");
 
         // 7. InitializeSession method
-        builder.AppendLine(@"    private async Task InitializeSession()
-    {
-        objTRSSession.BranchId = await _LocalSession.GetItem(""Home_Branch_Id"");
-        objTRSSession.UserId = await _LocalSession.GetItem(""UserId"");
-        objTRSSession.FunctionId = await _LocalSession.GetItem(""Function_Id"");
-        objTRSSession.TransDate = await _LocalSession.GetItem(""Trans_Date"");
-        objTRSSession.ServiceTypeId = await _LocalSession.GetItem(""Service_Type_Id"");
-        objTRSSession.LocalCurrId = await _LocalSession.GetItem(""Local_Currency_Id"");
-    }");
+    //    builder.AppendLine(@"    private async Task InitializeSession()
+    //{
+    //    objTRSSession.BranchId = await _LocalSession.GetItem(""Home_Branch_Id"");
+    //    objTRSSession.UserId = await _LocalSession.GetItem(""UserId"");
+    //    objTRSSession.FunctionId = await _LocalSession.GetItem(""Function_Id"");
+    //    objTRSSession.TransDate = await _LocalSession.GetItem(""Trans_Date"");
+    //    objTRSSession.ServiceTypeId = await _LocalSession.GetItem(""Service_Type_Id"");
+    //    objTRSSession.LocalCurrId = await _LocalSession.GetItem(""Local_Currency_Id"");
+    //}");
 
         // 8. Common methods
         builder.AppendLine(@"    private async Task AddBtnClick()
@@ -575,14 +567,46 @@ function triggerHiddenButtonClick() {{
         _variables.Add(new VariableInfo(@$"{controlId}Model", @$"{GenHelper.CapitalizeFirstLetter(controlId)}Model", @$"new {GenHelper.CapitalizeFirstLetter(controlId)}Model()", "private", false));
     }
 
-    private void GenerateSingleControl(StringBuilder builder, ControlInfo control, ComponentMapping mapping,
-    string attributes, string indent, CustomControl customControl = null)
+    private bool HasMeaningfulContent(ControlInfo control)
     {
+        // Check if control has inner text
+        if (!string.IsNullOrWhiteSpace(control.InnerText?.Trim()))
+            return true;
+
+        // Check if control has meaningful attributes
+        if (control.Attributes != null && control.Attributes.Any(a =>
+            !string.IsNullOrWhiteSpace(a.Value) &&
+            a.Key != "class" &&
+            a.Key != "style" &&
+            !a.Key.StartsWith("data-")))
+            return true;
+
+        // Check if any child controls have content
+        if (control.Children != null && control.Children.Any(child => HasMeaningfulContent(child)))
+            return true;
+
+        // Check for label text in custom control
+        if (!string.IsNullOrWhiteSpace(control.LabelText))
+            return true;
+
+        return false;
+    }
+
+    private void GenerateSingleControl(StringBuilder builder, ControlInfo control, ComponentMapping mapping,
+        string attributes, string indent, CustomControl customControl = null)
+    {
+
+        // Skip generation if control has no meaningful content or children
+        if (!HasMeaningfulContent(control))
+            return;
+
         var controlId = control.Attributes.GetValueOrDefault("id", "");
         var wrapperClass = GetWrapperClass(control, mapping);
+        var hasWrapper = !string.IsNullOrEmpty(wrapperClass);
+        var originalIndent = indent;
 
-        
-        if (!string.IsNullOrEmpty(wrapperClass))
+        // Open wrapper div if needed
+        if (hasWrapper)
         {
             builder.AppendLine($"{indent}<div class=\"{wrapperClass}\">");
             indent += "    ";
@@ -591,7 +615,7 @@ function triggerHiddenButtonClick() {{
         var componentAttributes = new List<string> { attributes };
 
         // Add Label_Text attribute if we have a custom control with label text
-        if (customControl != null && !string.IsNullOrEmpty(customControl.LabelText))
+        if (customControl != null && !string.IsNullOrEmpty(customControl.LabelText) && mapping.HasLabelText)
         {
             componentAttributes.Add($"Label_Text=\"{customControl.LabelText}\"");
         }
@@ -620,10 +644,8 @@ function triggerHiddenButtonClick() {{
                 {
                     dict.Add(option, $"{option.ToLower()}");
                 }
-                //builder.AppendLine($"{indent}    <option value=\"{option}\">{option}</option>");
             }
             _ddVendor.Add($"{customControl.Id}List", dict);
-
         }
         else if (NeedsInnerContent(mapping.Type))
         {
@@ -631,54 +653,76 @@ function triggerHiddenButtonClick() {{
         }
         var allAttributes = string.Join(" ", componentAttributes.Where(a => !string.IsNullOrEmpty(a)));
 
-        if (mapping.Type.Equals("button", StringComparison.OrdinalIgnoreCase) &&
-            (control.InnerText.Contains("Add", StringComparison.OrdinalIgnoreCase) || control.InnerText.Contains("Save", StringComparison.OrdinalIgnoreCase)) &&
-            _grids.Count() > 0)
+        try
         {
-            builder.AppendLine(@$"{indent}@if(isUpdate){{");
-            builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""UpdateGridData"">");
-            builder.AppendLine(@$"{indent}    Update");
-            builder.AppendLine($"{indent}</{mapping.Type}>");
-            builder.AppendLine(@$"{indent}}}else{{");
-            builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""AddDataToGrid"">");
-            builder.AppendLine(@$"{indent}    {content}");
-            builder.AppendLine($"{indent}</{mapping.Type}>");
-            builder.AppendLine(@$"{indent}}}");
-
-            _variables.Add(new VariableInfo("isUpdate", "bool", "false", "private", false));
-            _variables.Add(new VariableInfo("gridModelId", "string", @"""1""", "private", false));
-        }
-        else if (mapping.Type.Equals("button", StringComparison.OrdinalIgnoreCase) &&
-            (control.InnerText.Contains("Ok", StringComparison.OrdinalIgnoreCase) || 
-            control.InnerText.Contains("Refresh", StringComparison.OrdinalIgnoreCase) || 
-            control.InnerText.Contains("Exit", StringComparison.OrdinalIgnoreCase)) && 
-            control.Attributes.GetValueOrDefault("class", "").Contains("primary_button", StringComparison.OrdinalIgnoreCase))
-        {
-            //pass
-        }
-        else if(mapping.Type.Equals("UXC_TextBox", StringComparison.OrdinalIgnoreCase) && (customControl == null || 
-            (customControl != null&&string.IsNullOrEmpty(customControl.LabelText))))
-        {
-            //pass
-        }
-        else
-        {
-            // Generate the component with all attributes
-            builder.AppendLine($"{indent}<{mapping.Type} {allAttributes}>");
-
-            if (mapping.Type == "button" && !string.IsNullOrEmpty(content))
+            // Handle special button cases
+            if (mapping.Type.Equals("button", StringComparison.OrdinalIgnoreCase) &&
+                (control.InnerText.Contains("Add", StringComparison.OrdinalIgnoreCase) || control.InnerText.Contains("Save", StringComparison.OrdinalIgnoreCase)) &&
+                _grids.Count() > 0)
             {
-                builder.AppendLine(content);
+                GenerateGridActionButton(builder, mapping, allAttributes, content, indent);
             }
-        
-            builder.AppendLine($"{indent}</{mapping.Type}>");
+            else if (!ShouldSkipGeneration(mapping, control, customControl))
+            {
+                // Generate the component with all attributes
+                builder.AppendLine($"{indent}<{mapping.Type} {allAttributes}>");
+
+                if (mapping.Type == "button" && !string.IsNullOrEmpty(content))
+                {
+                    builder.AppendLine(content);
+                }
+
+                builder.AppendLine($"{indent}</{mapping.Type}>");
+            }
+        }
+        finally
+        {
+            // Always close wrapper div if it was opened
+            if (hasWrapper)
+            {
+                builder.AppendLine($"{originalIndent}</div>");
+            }
+        }
+    }
+
+    private bool ShouldSkipGeneration(ComponentMapping mapping, ControlInfo control, CustomControl customControl)
+    {
+        // Skip primary buttons with specific text
+        if (mapping.Type.Equals("button", StringComparison.OrdinalIgnoreCase) &&
+            (control.InnerText.Contains("Ok", StringComparison.OrdinalIgnoreCase) ||
+            control.InnerText.Contains("Refresh", StringComparison.OrdinalIgnoreCase) ||
+            control.InnerText.Contains("Update", StringComparison.OrdinalIgnoreCase) ||
+            control.InnerText.Contains("Exit", StringComparison.OrdinalIgnoreCase)) && 
+            (control.Attributes.GetValueOrDefault("class", "").Contains("primary_button", StringComparison.OrdinalIgnoreCase) || 
+            control.Attributes.GetValueOrDefault("class", "").Contains("ax_default_hidden", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
         }
 
-        if (!string.IsNullOrEmpty(wrapperClass))
+        // Skip text boxes without label text
+        if (mapping.Type.Equals("UXC_TextBox", StringComparison.OrdinalIgnoreCase) &&
+            (customControl == null || (customControl != null && string.IsNullOrEmpty(customControl.LabelText))))
         {
-            indent = indent.Substring(4);
-            builder.AppendLine($"{indent}</div>");
+            return true;
         }
+
+        return false;
+    }
+
+    private void GenerateGridActionButton(StringBuilder builder, ComponentMapping mapping, string allAttributes, string content, string indent)
+    {
+        builder.AppendLine(@$"{indent}@if(isUpdate){{");
+        builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""UpdateGridData"">");
+        builder.AppendLine(@$"{indent}    Update");
+        builder.AppendLine($"{indent}</{mapping.Type}>");
+        builder.AppendLine(@$"{indent}}}else{{");
+        builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""AddDataToGrid"">");
+        builder.AppendLine(@$"{indent}    {content}");
+        builder.AppendLine($"{indent}</{mapping.Type}>");
+        builder.AppendLine(@$"{indent}}}");
+
+        _variables.Add(new VariableInfo("isUpdate", "bool", "false", "private", false));
+        _variables.Add(new VariableInfo("gridModelId", "string", @"""1""", "private", false));
     }
 
     private void GenerateContainerControl(StringBuilder builder, ControlInfo control, ComponentMapping mapping, string indent)
@@ -886,7 +930,9 @@ function triggerHiddenButtonClick() {{
             case "UXC_Amount":
                 return $"@bind-Value=\"{controlId}\" @bind-Value:event=\"oninput\"";
             case "UXC_TextBox":
+            case "UXC_TxtArea":
             case "UXC_Date":
+            case "UXC_Number":
             case "UXC_Dynamic_Dropdown":
                 return $"@bind-Value=\"{controlId}\"";
             case "UXC_Switch":
@@ -901,10 +947,12 @@ function triggerHiddenButtonClick() {{
         var (type, defaultValue, nullable) = mapping.Type switch
         {
             "UXC_Amount" => ("decimal", "0.00m", true),
-            "UXC_Date" => ("DateTime", "new DateTime()", true),
+            "UXC_Date" => ("string", "\"dd/mm/yyyy\"", false),
             "UXC_Dynamic_Dropdown" => ("string", "\"\"", false),
             "UXC_Switch" => ("bool", "false", false),
             "UXC_TextBox" => ("string", "\"\"", false),
+            "UXC_TxtArea" => ("string", "\"\"", false),
+            "UXC_Number" => ("string", "\"\"", false),
             _ => (null, null, false)
         };
 
