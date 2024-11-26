@@ -174,7 +174,11 @@ public class AspxParser
         // Check class attributes for control type indicators
         var classes = node.GetAttributeValue("class", "").Split(' ');
         var type = node.GetAttributeValue("type", "").ToLower();
+        var dataLabel = node.GetAttributeValue("data-label", "").ToLower();
         if (type.Contains("date")) return "Date";
+
+        if (dataLabel.Contains("pnl_", StringComparison.OrdinalIgnoreCase)) return "Panel";
+
         if (classes.Any(c => c.Contains("ax_default")))
         {
             if (classes.Contains("text_field")) return "TextBox";
@@ -191,11 +195,11 @@ public class AspxParser
     private string GetControlId(HtmlNode node)
     {
         // Try getting ID from data-label first, then fallback to id attribute
-        var dataLabel = node.GetAttributeValue("data-label", null);
-        if (!string.IsNullOrEmpty(dataLabel)) return dataLabel;
         var id = node.GetAttributeValue("id", null);
         if (!string.IsNullOrEmpty(id) && id.Equals("base", StringComparison.OrdinalIgnoreCase)) 
             return "baseId";
+        //var dataLabel = node.GetAttributeValue("data-label", null);
+        //if (!string.IsNullOrEmpty(dataLabel)) return dataLabel;
         return node.GetAttributeValue("id", null);
     }
 
@@ -226,7 +230,7 @@ public class AspxParser
         var classes = node.GetAttributeValue("class", "").ToLower().Split(' ');
         var dataLabel = node.GetAttributeValue("data-label", "").ToLower();
         var type = node.GetAttributeValue("type", "").ToLower();
-        
+
         // Check for grid patterns
         if (IsGridControl(node, classes, dataLabel))
         {
@@ -239,7 +243,12 @@ public class AspxParser
         if (classes.Contains("droplist")) return "DropDown";
         if (classes.Contains("button") || classes.Contains("primary_button")) return "Button";
         if (classes.Contains("label")) return "Label";
-        if (classes.Contains("box_") || classes.Contains("box_2") || classes.Contains("box_3")) return "Panel";
+        if (classes.Contains("box_") || 
+            classes.Contains("box_2") || 
+            classes.Contains("box_3") ||
+            dataLabel.Contains("pnl_", StringComparison.OrdinalIgnoreCase)) 
+                return "Panel";
+
         if (classes.Contains("icon")) return "Icon";
         if (classes.Contains("image")) return "Image";
 
@@ -260,7 +269,7 @@ public class AspxParser
 
     private List<string> AnalyzePanels(HtmlNode doc)
     {
-        return doc.SelectNodes("//*[@class and contains(@class, 'box_1') or contains(@class, 'box_2') or contains(@class, 'box_3') or contains(@class, 'heading_')]")?
+        return doc.SelectNodes("//*[@class and contains(@class, 'box_1') or contains(@class, 'box_2') or contains(@class, 'box_3') or contains(@data-label, 'pnl_') or contains(@class, 'heading_')]")?
             .Select(n => n.GetAttributeValue("id", null))
             .Where(id => id != null)
             .ToList() ?? new List<string>();
@@ -589,7 +598,7 @@ public class AspxParser
                 typeInput = "textarea";
             }
   
-            var controlType = DetermineCustomControlType(classes, typeInput);
+            var controlType = DetermineCustomControlType(classes, typeInput, dataLabel);
 
             // Skip if this ID or LabelId is already processed
             if (controls.Any(c => c.Id == node.Id || c.LabelId == node.Id))
@@ -610,7 +619,12 @@ public class AspxParser
                     IsDisabled = isDisabled,
                     IsGenerated = controlType.Equals("Label", StringComparison.OrdinalIgnoreCase)
                 };
-
+                if (controlType.Equals("Panel"))
+                {
+                    control.LabelText = node.SelectSingleNode(".//div[@class='text ']//p//span")?.InnerText.Trim() ??
+                                      node.SelectSingleNode(".//div[@class='text ']//p")?.InnerText.Trim() ??
+                                      node.SelectSingleNode(".//div[@class='text ']")?.InnerText.Trim();
+                }
                 if (dataLabel.StartsWith("lbl_", StringComparison.OrdinalIgnoreCase))
                 {
                     // This is a label
@@ -625,7 +639,7 @@ public class AspxParser
 
                     if (fieldNode != null)
                     {
-                        var type = DetermineCustomControlType(fieldNode.GetAttributeValue("class", "").Split(' '), typeInput);
+                        var type = DetermineCustomControlType(fieldNode.GetAttributeValue("class", "").Split(' '), typeInput, dataLabel);
                         var fieldControl = new CustomControl
                         {
                             Id = fieldNode.Id,
@@ -700,8 +714,9 @@ public class AspxParser
         return controls;
     }
 
-    private string DetermineCustomControlType(string[] classes, string typeInput)
+    private string DetermineCustomControlType(string[] classes, string typeInput, string dataLabel)
     {
+        if (dataLabel.Contains("pnl_")) return "Panel";
         if (typeInput.Contains("date")) return "Date";
         if (typeInput.Contains("number")) return "Number";
         if (typeInput.Contains("file")) return "File";

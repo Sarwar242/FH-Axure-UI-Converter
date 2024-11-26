@@ -1,5 +1,6 @@
 ﻿using Core.Models;
 using Newtonsoft.Json;
+using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -19,6 +20,7 @@ public class BlazorComponentGenerator
     private List<GridInfo> _grids = new List<GridInfo>();
     private List<ModelInfo> _gridModels = new List<ModelInfo>();
     private Dictionary<string, string> _gridColFields = new ();
+    private bool _openPanel = false;
 
     public BlazorComponentGenerator(string mappingFilePath)
     {
@@ -37,6 +39,7 @@ public class BlazorComponentGenerator
         _gridModels.Clear();
         _grids.AddRange(analysis.Grids);
         _customControls.AddRange(analysis.CustomControls);
+        _openPanel = false;
         var componentBuilder = new StringBuilder();
         pageName = GetPageName(analysis, isPopup);
         // Generate component structure
@@ -110,6 +113,14 @@ public class BlazorComponentGenerator
             if(!control.Type.Equals("script", StringComparison.OrdinalIgnoreCase))
                 GenerateControl(builder, control, 2);
         }
+      
+        if (_openPanel)
+        {
+            // Close container
+            builder.AppendLine(@"        </div>");
+            _openPanel = false;
+        }
+        
 
         builder.AppendLine("    </div>");
         builder.AppendLine("</div>");
@@ -730,28 +741,52 @@ function triggerHiddenButtonClick() {{
         var controlId = control.Attributes.GetValueOrDefault("id", "");
         var headerText = control.Attributes.GetValueOrDefault("groupingtext", "") ?? control.LabelText;
         var visibility = GenerateVisibilityAttribute(control);
+        var customComponent = _customControls.Where(_ => _.Id.Equals(control.ID, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 
-        // Start container
-        builder.AppendLine($"{indent}<div id=\"{controlId}\" class=\"{mapping.Styles["default"]}\" {visibility}>");
-
-        // Add header if needed
-        if (!string.IsNullOrEmpty(headerText))
+        if(customComponent!=null && customComponent.Type.Equals("Panel") && !String.IsNullOrEmpty(customComponent.LabelText))
         {
+            if (_openPanel)
+            {
+                // Close container
+                builder.AppendLine($"{indent}</div>");
+                _openPanel = false;
+            }
+            // Start container
+            builder.AppendLine($"{indent}<div id=\"{controlId}\" class=\"{mapping.Styles["default"]}\" {visibility}>");
+
             builder.AppendLine($"{indent}    <div class=\"box-title\">");
             builder.AppendLine($"{indent}        <div>");
-            builder.AppendLine($"{indent}            <h6 class=\"GridTitlebar\">{headerText}</h6>");
+            builder.AppendLine($"{indent}            <h6 class=\"GridTitlebar\">{customComponent.LabelText}</h6>");
             builder.AppendLine($"{indent}        </div>");
             builder.AppendLine($"{indent}    </div>");
-        }
 
-        // Process child controls
-        foreach (var childControl in control.Children)
+            _openPanel = true;
+        }
+        else
         {
-            GenerateControl(builder, childControl, 4);
-        }
+            // Start container
+            builder.AppendLine($"{indent}<div id=\"{controlId}\" class=\"{mapping.Styles["default"]}\" {visibility}>");
 
-        // Close container
-        builder.AppendLine($"{indent}</div>");
+            // Add header if needed
+            if (!string.IsNullOrEmpty(headerText))
+            {
+                builder.AppendLine($"{indent}    <div class=\"box-title\">");
+                builder.AppendLine($"{indent}        <div>");
+                builder.AppendLine($"{indent}            <h6 class=\"GridTitlebar\">{headerText}</h6>");
+                builder.AppendLine($"{indent}        </div>");
+                builder.AppendLine($"{indent}    </div>");
+            }
+
+            // Process child controls
+            foreach (var childControl in control.Children)
+            {
+                GenerateControl(builder, childControl, 4);
+            }
+
+            // Close container
+            builder.AppendLine($"{indent}</div>");
+        }
+        
     }
     #endregion
 
@@ -886,32 +921,6 @@ function triggerHiddenButtonClick() {{
         return mapping.Type == "button" ? "my-2" : "form-group col-3 my-2";
     }
 
-    //private string GenerateControlLabel(ControlInfo control, ComponentMapping mapping, string indent)
-    //{
-    //    var labelText = control.Attributes.GetValueOrDefault("ls_fieldlabel", null) ??
-    //                   control.Attributes.GetValueOrDefault("data-label", null);
-
-    //    if (string.IsNullOrEmpty(labelText) || mapping.HasLabelText) return string.Empty;
-
-    //    var controlId = control.Attributes.GetValueOrDefault("id", "");
-    //    var labelClass = DetermineLabelClass(control.Type);
-
-    //    return $"{indent}<UXC_Label LabelValue=\"{labelText}\" Visible=\"true\"></UXC_Label>";
-    //}
-
-    //private string DetermineLabelClass(string controlType)
-    //{
-    //    switch (controlType.ToLowerInvariant())
-    //    {
-    //        case string s when s.Contains("amount"):
-    //        case string y when y.Contains("amounttoword"):
-    //            return "control-label mandatory";
-    //        case string s when s.Contains("date"):
-    //            return "control-label";
-    //        default:
-    //            return "control-label";
-    //    }
-    //}
     private string GenerateBindingAttribute(ControlInfo control, ComponentMapping mapping)
     {
         var controlId = control.Attributes.GetValueOrDefault("id", "");
