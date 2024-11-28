@@ -102,22 +102,22 @@
         "{id}:string:\"\""
       ]
     },
-      {
+    {
       "Name": "File",
       "Type": "UXC_File",
       "Description": "Standard file input component",
       "HasLabelText": false,
-      "HtmlClasses": [ "text_field"],
-        "DefaultAttributes": {
-          "MultipleFile": "false"
-        },
+      "HtmlClasses": [ "text_field" ],
+      "DefaultAttributes": {
+        "MultipleFile": "false"
+      },
       "AttributeMappings": {
         //"id": {
         //  "SourceAttribute": "id",
         //  "TargetAttribute": "Id",
         //  "Required": true
         //},
-       
+
         "class": {
           "SourceAttribute": "class",
           "TargetAttribute": "CssClass",
@@ -137,9 +137,9 @@
       ]
     },
     {
-      "Name": "AmountBox",
-      "Type": "UXC_Amount",
-      "Description": "Numeric input for currency amounts",
+      "Name": "AmountToWord",
+      "Type": "UXC_AmountToWord",
+      "Description": "Amount input for currency amount that shows in words!",
       "HasLabelText": true,
       "HtmlClasses": [ "text_field", "ax_default" ],
       "DefaultAttributes": {
@@ -151,11 +151,30 @@
           "SourceAttribute": "id",
           "TargetAttribute": "Id",
           "Required": true
-        },
-        //"data-label": {
-        //  "SourceAttribute": "data-label",
-        //  "TargetAttribute": "Label_Text"
-        //}
+        }
+      },
+      "RequiredVariables": [
+        "{id}:decimal:0.00m",
+        "IsHid{id}:string:\"\"",
+        "IsEnable{id}:bool:true"
+      ]
+    },
+    {
+      "Name": "Amount",
+      "Type": "UXC_Amount",
+      "Description": "Numeric input for currency amount!",
+      "HasLabelText": true,
+      "HtmlClasses": [ "text_field", "ax_default" ],
+      "DefaultAttributes": {
+        "DecimalPoint": "2",
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id",
+          "Required": true
+        }
       },
       "RequiredVariables": [
         "{id}:decimal:0.00m",
@@ -177,11 +196,7 @@
           "SourceAttribute": "id",
           "TargetAttribute": "Id",
           "Required": true
-        },
-        //"data-label": {
-        //  "SourceAttribute": "data-label",
-        //  "TargetAttribute": "Label_Text"
-        //}
+        }
       },
       "RequiredVariables": [
         "{id}:decimal:0.00m",
@@ -194,7 +209,7 @@
       "Type": "UXC_Dynamic_Dropdown",
       "Description": "Dynamic dropdown with data binding",
       "HasLabelText": true,
-      "HtmlClasses": [ "droplist"],
+      "HtmlClasses": [ "droplist" ],
       "DefaultAttributes": {
         "Enable": "true"
       },
@@ -270,7 +285,7 @@
         }
       },
       "Styles": {
-        "default": "row border border-dark my-2"
+        "default": "row border my-2"
       },
       "RequiredVariables": [
         "IsHid{id}:bool:false"
@@ -298,6 +313,42 @@
       "RequiredVariables": [
         "IsHid{id}:bool:false",
         "IsEnable{id}:bool:false"
+      ]
+    },
+    {
+      "Name": "Switch",
+      "Type": "UXC_Switch",
+      "Description": "Switch/Checkbox input component",
+      "HasLabelText": true,
+      "HtmlClasses": [ "checkbox", "ax_default" ],
+      "DefaultAttributes": {
+        "Enable": "true"
+      },
+      "AttributeMappings": {
+        "id": {
+          "SourceAttribute": "id",
+          "TargetAttribute": "Id",
+          "Required": true
+        },
+        "checked": {
+          "SourceAttribute": "checked",
+          "TargetAttribute": "IsChecked"
+        }
+      },
+      "Events": [
+        {
+          "EventName": "OnCheckedChanged",
+          "SourceAttribute": "Changed",
+          "TargetEventName": "IsCheckedChanged",
+          "RequiredParameters": [ "bool value" ],
+          "Body": "{id} = value;",
+          "RequiresStateHasChanged": true
+        }
+      ],
+      "RequiredVariables": [
+        "{id}:bool:false",
+        "IsHid{id}:string:\"\"",
+        "IsEnable{id}:bool:true"
       ]
     }
   ]

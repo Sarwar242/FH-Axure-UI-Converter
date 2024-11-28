@@ -6,6 +6,7 @@ namespace Core.Parsers;
 
 public class AspxParser
 {
+    #region Initializations
     private readonly string _mappingFilePath;
     private List<string> dataLabelsToSkip = new List<string>
     {
@@ -96,6 +97,8 @@ public class AspxParser
 
         return controls;
     }
+    #endregion
+
     #region Helper Checker
     private bool ShouldSkipByDataLabel(HtmlNode node)
     {
@@ -173,16 +176,30 @@ public class AspxParser
     {
         // Check class attributes for control type indicators
         var classes = node.GetAttributeValue("class", "").Split(' ');
-        var type = node.GetAttributeValue("type", "").ToLower();
+        var inputNode = node.SelectSingleNode("./input");
+        var type = inputNode?.GetAttributeValue("type", "") ?? node.GetAttributeValue("type", "");
         var dataLabel = node.GetAttributeValue("data-label", "").ToLower();
         if (type.Contains("date")) return "Date";
+        if (type.Contains("number"))
+        {
+            if (dataLabel.Contains("_amt"))
+            {
+                return "Amount";
+            }
+            else if (dataLabel.Contains("_wamt"))
+            {
+                return "AmountToWord";
+            }
 
+            return "Number";
+        }
         if (dataLabel.Contains("pnl_", StringComparison.OrdinalIgnoreCase)) return "Panel";
 
         if (classes.Any(c => c.Contains("ax_default")))
         {
             if (classes.Contains("text_field")) return "TextBox";
             if (classes.Contains("droplist")) return "DropDown";
+            if (classes.Contains("checkbox")) return "Switch";
             if (classes.Contains("button") || classes.Contains("primary_button")) return "Button";
             if (classes.Contains("label")) return "Label";
             if (classes.Contains("box_") || classes.Contains("heading_")) return "Panel";
@@ -229,15 +246,26 @@ public class AspxParser
     {
         var classes = node.GetAttributeValue("class", "").ToLower().Split(' ');
         var dataLabel = node.GetAttributeValue("data-label", "").ToLower();
-        var type = node.GetAttributeValue("type", "").ToLower();
-
+        var inputNode = node.SelectSingleNode("./input");
+        var type = inputNode?.GetAttributeValue("type", "") ?? node.GetAttributeValue("type", "");
         // Check for grid patterns
         if (IsGridControl(node, classes, dataLabel))
         {
             return "Grid";
         }
         if (type.Contains("date")) return "Date";
-        if (type.Contains("number")) return "Number";
+        if (type.Contains("number"))
+        {
+            if (dataLabel.Contains("_amt")){
+                return "Amount";
+            }
+            else if(dataLabel.Contains("_wamt")){
+                return "AmountToWord";
+            }
+
+            return "Number";
+        }
+
         if (type.Contains("file")) return "File";
         if (classes.Contains("text_field")) return "TextBox";
         if (classes.Contains("droplist")) return "DropDown";
@@ -251,6 +279,7 @@ public class AspxParser
 
         if (classes.Contains("icon")) return "Icon";
         if (classes.Contains("image")) return "Image";
+        if (classes.Contains("checkbox")) return "Switch";
 
         return "Other";
     }
@@ -275,69 +304,138 @@ public class AspxParser
             .ToList() ?? new List<string>();
     }
 
+    //private List<GridInfo> AnalyzeGrids(HtmlNode doc)
+    //{
+    //    var grids = new List<GridInfo>();
+
+    //    // Find all panels with data-label="Show_grid"
+    //    var gridPanels = doc.SelectNodes("//div[contains(@data-label, 'grid')]");
+    //    if (gridPanels == null) return grids;
+
+    //    foreach (var gridPanel in gridPanels)
+    //    {
+    //        // Look for template sections within the grid panel
+    //        var templates = gridPanel.SelectNodes(".//script[@type='axure-repeater-template']");
+    //        var headerCells = gridPanel.SelectNodes(".//div[contains(@class, 'ax_default box_')]")
+    //            ?.Where(node => node.SelectNodes(".//div[contains(@class, 'text')]")?.Any() ?? false)
+    //            ?.Select(node => node.SelectSingleNode(".//div[contains(@class, 'text')]").InnerText?.Trim())
+    //            ?.Where(text => !string.IsNullOrEmpty(text))
+    //            ?.ToList() ?? new List<string>();
+
+    //        if (templates != null || headerCells.Any())
+    //        {
+    //            var grid = new GridInfo
+    //            {
+    //                ID = gridPanel.GetAttributeValue("id", null),
+    //                Columns = new List<string>()
+    //            };
+
+    //            // Add header columns
+    //            foreach (var headerText in headerCells)
+    //            {
+    //                if (!grid.Columns.Contains(headerText))
+    //                {
+    //                    grid.ColumnsDataLbls.Add(headerText);
+    //                    grid.Columns.Add(headerText);
+    //                }
+    //            }
+
+    //            // Process template columns if they exist
+    //            if (templates != null)
+    //            {
+    //                foreach (var template in templates)
+    //                {
+    //                    var templateCells = template.SelectNodes(".//div[contains(@data-label, 'rp_')]");
+    //                    if (templateCells != null)
+    //                    {
+    //                        foreach (var cell in templateCells)
+    //                        {
+    //                            var textNode = cell.SelectSingleNode(".//div[contains(@class, 'text')]");
+    //                            if (textNode != null)
+    //                            {
+    //                                var columnText = textNode.InnerText?.Trim();
+    //                                if (!string.IsNullOrEmpty(columnText) && !grid.Columns.Contains(columnText))
+    //                                {
+    //                                    grid.ColumnsDataLbls.Add(columnText);
+    //                                    grid.Columns.Add(columnText);
+    //                                }
+    //                            }
+    //                        }
+    //                    }
+    //                }
+    //            }
+
+    //            // Remove any special system columns like "Edit" or "Remove"
+    //            grid.Columns.RemoveAll(col =>
+    //                col.Equals("Edit", StringComparison.OrdinalIgnoreCase) ||
+    //                col.Equals("Delete", StringComparison.OrdinalIgnoreCase) ||
+    //                col.Equals("Remove", StringComparison.OrdinalIgnoreCase));
+
+    //            if (grid.Columns.Any())
+    //            {
+    //                grids.Add(grid);
+    //            }
+    //        }
+    //    }
+
+    //    return grids;
+    //}
+
     private List<GridInfo> AnalyzeGrids(HtmlNode doc)
     {
         var grids = new List<GridInfo>();
-
-        // Find all panels with data-label="Show_grid"
-        var gridPanels = doc.SelectNodes("//div[contains(@data-label, 'grid')]");
+        var gridPanels = doc.SelectNodes("//script[@type='axure-repeater-template']");
         if (gridPanels == null) return grids;
 
         foreach (var gridPanel in gridPanels)
         {
-            // Look for template sections within the grid panel
-            var templates = gridPanel.SelectNodes(".//script[@type='axure-repeater-template']");
-            var headerCells = gridPanel.SelectNodes(".//div[contains(@class, 'ax_default box_')]")
-                ?.Where(node => node.SelectNodes(".//div[contains(@class, 'text')]")?.Any() ?? false)
-                ?.Select(node => node.SelectSingleNode(".//div[contains(@class, 'text')]").InnerText?.Trim())
-                ?.Where(text => !string.IsNullOrEmpty(text))
-                ?.ToList() ?? new List<string>();
+            var gridPanelPARENT = gridPanel.ParentNode?.ParentNode?.ParentNode?.ParentNode;
 
-            if (templates != null || headerCells.Any())
+            // Create a new HTML document from the script content
+            var scriptContent = gridPanel.InnerHtml;
+            var tempDoc = new HtmlDocument();
+            tempDoc.LoadHtml(scriptContent);
+
+            // Now search within this new document
+            var headerCells = tempDoc.DocumentNode.SelectNodes("//div[contains(@class, 'ax_default box_1')]")
+                ?.Where(node => node.SelectNodes(".//div[contains(@class, 'text')]")?.Any() ?? false)
+                ?.ToList() ?? new List<HtmlNode>();
+
+            if (headerCells.Any())
             {
+                // Rest of your code remains the same
                 var grid = new GridInfo
                 {
-                    ID = gridPanel.GetAttributeValue("id", null),
-                    Columns = new List<string>()
+                    ID = gridPanelPARENT != null ? gridPanelPARENT.GetAttributeValue("id", null) : gridPanel.GetAttributeValue("id", null),
+                    Columns = new List<string>(),
+                    ColumnsDataLbls = new List<string>()
                 };
 
-                // Add header columns
-                foreach (var headerText in headerCells)
+                foreach (var cell in headerCells)
                 {
-                    if (!grid.Columns.Contains(headerText))
-                    {
-                        grid.Columns.Add(headerText);
-                    }
-                }
+                    var headerText = cell.SelectSingleNode(".//div[contains(@class, 'text')]")?.InnerText?.Trim();
+                    var dataLabel = cell.GetAttributeValue("data-label", "");
 
-                // Process template columns if they exist
-                if (templates != null)
-                {
-                    foreach (var template in templates)
+                    if (!string.IsNullOrEmpty(headerText) && !grid.Columns.Contains(headerText))
                     {
-                        var templateCells = template.SelectNodes(".//div[contains(@data-label, 'rp_')]");
-                        if (templateCells != null)
+                        if (!string.IsNullOrEmpty(dataLabel) && dataLabel.StartsWith("cell_", StringComparison.OrdinalIgnoreCase))
                         {
-                            foreach (var cell in templateCells)
-                            {
-                                var textNode = cell.SelectSingleNode(".//div[contains(@class, 'text')]");
-                                if (textNode != null)
-                                {
-                                    var columnText = textNode.InnerText?.Trim();
-                                    if (!string.IsNullOrEmpty(columnText) && !grid.Columns.Contains(columnText))
-                                    {
-                                        grid.Columns.Add(columnText);
-                                    }
-                                }
-                            }
+                            grid.Columns.Add(headerText);
+                            grid.ColumnsDataLbls.Add(dataLabel.Substring(5));
                         }
                     }
                 }
 
-                // Remove any special system columns like "Edit" or "Remove"
-                grid.Columns.RemoveAll(col =>
-                    col.Equals("Edit", StringComparison.OrdinalIgnoreCase) ||
-                    col.Equals("Remove", StringComparison.OrdinalIgnoreCase));
+                // Remove system columns
+                var systemColumns = new[] { "Edit", "Delete", "Remove" };
+                for (int i = grid.Columns.Count - 1; i >= 0; i--)
+                {
+                    if (systemColumns.Contains(grid.Columns[i], StringComparer.OrdinalIgnoreCase))
+                    {
+                        grid.Columns.RemoveAt(i);
+                        grid.ColumnsDataLbls.RemoveAt(i);
+                    }
+                }
 
                 if (grid.Columns.Any())
                 {
@@ -348,7 +446,6 @@ public class AspxParser
 
         return grids;
     }
-
     private List<RadioInfo> AnalyzeRadioButtons(HtmlDocument doc)
     {
         var radioButtons = new List<RadioInfo>();
@@ -625,6 +722,14 @@ public class AspxParser
                                       node.SelectSingleNode(".//div[@class='text ']//p")?.InnerText.Trim() ??
                                       node.SelectSingleNode(".//div[@class='text ']")?.InnerText.Trim();
                 }
+                
+                if (controlType.Equals("Switch"))
+                {
+                    control.IsSelected = classes.Contains("selected") ? true : false;
+                    control.LabelText = node.SelectSingleNode(".//label//div[@class='text ']//p//span")?.InnerText.Trim() ??
+                                        node.SelectSingleNode(".//div[@class='text ']//p//span")?.InnerText.Trim() ??
+                                        node.SelectSingleNode(".//div[@class='text ']//p")?.InnerText.Trim();
+                }
                 if (dataLabel.StartsWith("lbl_", StringComparison.OrdinalIgnoreCase))
                 {
                     // This is a label
@@ -718,10 +823,23 @@ public class AspxParser
     {
         if (dataLabel.Contains("pnl_")) return "Panel";
         if (typeInput.Contains("date")) return "Date";
-        if (typeInput.Contains("number")) return "Number";
+        if (typeInput.Contains("number"))
+        {
+            if (dataLabel.Contains("_amt"))
+            {
+                return "Amount";
+            }
+            else if (dataLabel.Contains("_wamt"))
+            {
+                return "AmountToWord";
+            }
+
+            return "Number";
+        }
         if (typeInput.Contains("file")) return "File";
         if (typeInput.Contains("textarea")) return "TextArea";
         if (classes.Contains("label")) return "Label";
+        if (classes.Contains("checkbox")) return "Switch";
         if (classes.Contains("text_field")) return "TextBox";
         if (classes.Contains("date")) return "Date";
         if (classes.Contains("droplist")) return "DropDown";

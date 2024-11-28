@@ -1,6 +1,5 @@
 ﻿using Core.Models;
 using Newtonsoft.Json;
-using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -13,6 +12,7 @@ public class BlazorComponentGenerator
     private readonly HashSet<string> _generatedVariables = new HashSet<string>();
     private readonly List<string> _generatedMethods = new List<string>();
     private readonly StringBuilder _stateVariables = new StringBuilder();
+    private readonly StringBuilder _stateMethods = new StringBuilder();
     private readonly List<string> _injectServices = new List<string>();
     private HashSet<VariableInfo> _variables = new();
     private List<CustomControl> _customControls = new List<CustomControl>();
@@ -57,7 +57,7 @@ public class BlazorComponentGenerator
         {
             foreach (var grid in _grids)
             {
-                if (grid.Columns.Where(_ => _.Equals(control.LabelText, StringComparison.OrdinalIgnoreCase)).Count() > 0)
+                if (grid.ColumnsDataLbls.Where(_ => _.Equals(control.DataLabel, StringComparison.OrdinalIgnoreCase)).Count() > 0)
                 {
                     _gridColFields.TryAdd(GenHelper.GetColumnPropName(control.LabelText), control.Id);
                 }
@@ -167,44 +167,7 @@ function triggerHiddenButtonClick() {{
             builder.AppendLine($"    private bool IsEnable{variable.Name} = true;");
         }
         builder.AppendLine();
-        // 4. Form and control state variables
-        //foreach (var control in analysis.Controls)
-        //{
-        //    var controlId = control.Attributes.GetValueOrDefault("id", "");
-        //    if (!string.IsNullOrEmpty(controlId))
-        //    {
-        //        // Determine variable type based on control type
-        //        var varType = control.Type.ToLowerInvariant() switch
-        //        {
-        //            var t when t.Contains("amount") => "decimal",
-        //            var t when t.Contains("number") => "int",
-        //            var t when t.Contains("date") => "DateTime?",
-        //            var t when t.Contains("checkbox") || t.Contains("switch") => "bool",
-        //            _ => "string"
-        //        };
-
-        //        // Determine default value
-        //        var defaultValue = varType switch
-        //        {
-        //            "decimal" => "0.00m",
-        //            "int" => "0",
-        //            "DateTime?" => "null",
-        //            "bool" => "false",
-        //            _ => "\"\""
-        //        };
-
-        //        // Add state variables
-        //        builder.AppendLine($"    private {varType} {controlId} = {defaultValue};");
-        //        builder.AppendLine($"    private string IsHid{controlId} = string.Empty;");
-        //        builder.AppendLine($"    private bool IsEnable{controlId} = true;");
-
-        //        // Add validation variables if needed
-        //        if (control.Attributes.GetValueOrDefault("required", "").ToLower() == "true")
-        //        {
-        //            builder.AppendLine($"    private string {controlId}ValidationMessage = string.Empty;");
-        //        }
-        //    }
-        //}
+        
         builder.AppendLine();
 
         // 5. Grid variables
@@ -285,30 +248,31 @@ function triggerHiddenButtonClick() {{
         }}
     }}");
 
-        // 9. Standard button handlers
+        // 9. Standard handlers
         if (!isPopup)
         {
-            builder.AppendLine(@"    private void Exit()
-    {
-        nav.NavigateTo(""/Home"");
-    }
-
-    private async Task Refresh()
+            builder.AppendLine(@"    
+        private void Exit()
         {
-            try
-            {
-                await ClearFields();
-                await LoadInitialData();
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                await _jsruntime.InvokeVoidAsync(""globalFunctions.fireToastEvent"", ""bg-warning"", ""Warning"", ex.Message);
-            }
+            nav.NavigateTo(""/Home"");
         }
-   ");
+
+        private async Task Refresh()
+            {
+                try
+                {
+                    await ClearFields();
+                    await LoadInitialData();
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    await _jsruntime.InvokeVoidAsync(""globalFunctions.fireToastEvent"", ""bg-warning"", ""Warning"", ex.Message);
+                }
+            }");
         }
-        builder.AppendLine($@"      private async Task LoadInitialData()
+        builder.AppendLine($@"      
+        private async Task LoadInitialData()
         {{
             try
             {{
@@ -319,6 +283,7 @@ function triggerHiddenButtonClick() {{
                 await _jsruntime.InvokeVoidAsync(""globalFunctions.fireToastEvent"", ""bg-warning"", ""Warning"", ex.Message);
             }}
         }}");
+        GenerateEventHandlerMethods(builder); ;
         GenerateClearFieldsMethod(builder);
 
         foreach(var model in _gridModels)
@@ -342,7 +307,6 @@ function triggerHiddenButtonClick() {{
     }}");
 
     }
-
      
     private void GenerateGridAddUpdateMethods(StringBuilder builder)
     {
@@ -546,7 +510,7 @@ function triggerHiddenButtonClick() {{
         else
         {
             // Pass the customControl to use its properties
-            GenerateSingleControl(builder, control, mapping, attributes, indent, customControl);
+            GenerateSingleControl(builder, control, mapping, attributes, indent, customControl??new CustomControl());
         }
 
         // Mark as generated if we have a custom control
@@ -604,7 +568,7 @@ function triggerHiddenButtonClick() {{
     }
 
     private void GenerateSingleControl(StringBuilder builder, ControlInfo control, ComponentMapping mapping,
-        string attributes, string indent, CustomControl customControl = null)
+        string attributes, string indent, CustomControl customControl)
     {
 
         // Skip generation if control has no meaningful content or children
@@ -631,7 +595,7 @@ function triggerHiddenButtonClick() {{
             componentAttributes.Add($"Label_Text=\"{customControl.LabelText}\"");
         }
 
-        var bindingAttr = GenerateBindingAttribute(control, mapping);
+        var bindingAttr = GenerateBindingAttribute(control, mapping, customControl ?? new CustomControl());
         var events = GenerateEventAttributes(control, mapping);
         var styles = GenerateStyleAttributes(control, mapping);
 
@@ -673,6 +637,10 @@ function triggerHiddenButtonClick() {{
             {
                 GenerateGridActionButton(builder, mapping, allAttributes, content, indent);
             }
+            //else if (mapping.Type.Equals("switch", StringComparison.OrdinalIgnoreCase)) { 
+
+            //}
+
             else if (!ShouldSkipGeneration(mapping, control, customControl))
             {
                 // Generate the component with all attributes
@@ -811,6 +779,14 @@ function triggerHiddenButtonClick() {{
         return componentType;
     }
 
+    private void GenerateEventHandlerMethods(StringBuilder builder)
+    {
+        if(_stateMethods!=null)
+        {
+            builder.AppendLine($"    {_stateMethods}");
+        }
+    }
+    
     private void GenerateClearFieldsMethod(StringBuilder builder)
     {
         builder.AppendLine(@"    private async Task ClearFields()
@@ -921,13 +897,13 @@ function triggerHiddenButtonClick() {{
         return mapping.Type == "button" ? "my-2" : "form-group col-3 my-2";
     }
 
-    private string GenerateBindingAttribute(ControlInfo control, ComponentMapping mapping)
+    private string GenerateBindingAttribute(ControlInfo control, ComponentMapping mapping, CustomControl customControl)
     {
         var controlId = control.Attributes.GetValueOrDefault("id", "");
         if (string.IsNullOrEmpty(controlId)) return string.Empty;
 
         // Determine variable type and default value based on control type
-        VariableInfo variableInfo = GetVariableInfoForControl(controlId, mapping);
+        VariableInfo variableInfo = GetVariableInfoForControl(controlId, mapping, customControl);
         if (variableInfo != null)
         {
             _variables.Add(variableInfo);
@@ -937,7 +913,7 @@ function triggerHiddenButtonClick() {{
         switch (mapping.Type)
         {
             case "UXC_Amount":
-                return $"@bind-Value=\"{controlId}\" @bind-Value:event=\"oninput\"";
+            case "UXC_AmountToWord":
             case "UXC_TextBox":
             case "UXC_TxtArea":
             case "UXC_Date":
@@ -951,14 +927,15 @@ function triggerHiddenButtonClick() {{
         }
     }
 
-    private VariableInfo GetVariableInfoForControl(string controlId, ComponentMapping mapping)
+    private VariableInfo GetVariableInfoForControl(string controlId, ComponentMapping mapping, CustomControl customControl)
     {
         var (type, defaultValue, nullable) = mapping.Type switch
         {
             "UXC_Amount" => ("decimal", "0.00m", true),
+            "UXC_AmountToWord" => ("decimal", "0.00m", true),
             "UXC_Date" => ("string", "\"dd/mm/yyyy\"", false),
             "UXC_Dynamic_Dropdown" => ("string", "\"\"", false),
-            "UXC_Switch" => ("bool", "false", false),
+            "UXC_Switch" => ("bool", @$"{customControl.IsSelected.ToString().ToLower()}", false),
             "UXC_TextBox" => ("string", "\"\"", false),
             "UXC_TxtArea" => ("string", "\"\"", false),
             "UXC_Number" => ("string", "\"\"", false),
@@ -984,7 +961,17 @@ function triggerHiddenButtonClick() {{
                     GenerateEventHandler(control, handler, eventMapping);
                 }
 
-                events.Add($"{eventMapping.TargetEventName}=\"{handler}\"");
+                events.Add($"{eventMapping.TargetEventName}=\"On{GenHelper.CapitalizeFirstLetter(control.ID)}{handler}\"");
+            }
+            else if (control.Type == "Switch" && !string.IsNullOrEmpty(eventMapping.SourceAttribute))
+            {
+                // Generate method if needed
+                if (eventMapping.RequiresStateHasChanged)
+                {
+                    GenerateEventHandler(control, eventMapping.SourceAttribute, eventMapping);
+                }
+
+                events.Add($"{eventMapping.TargetEventName}= \"On{GenHelper.CapitalizeFirstLetter(control.ID)}{eventMapping.SourceAttribute}\"");
             }
             else if (!string.IsNullOrEmpty(eventMapping.DefaultHandler))
             {
@@ -998,6 +985,8 @@ function triggerHiddenButtonClick() {{
     private void GenerateEventHandler(ControlInfo control, string handler, ComponentEvent eventMapping)
     {
         var methodName = handler.Replace("()", "").Trim();
+        methodName = $"On" + GenHelper.CapitalizeFirstLetter(control.ID) + handler;
+        var changedLine = eventMapping?.Body?.Replace("{id}", control.ID);
         if (!_generatedMethods.Contains(methodName))
         {
             var parameters = string.Join(", ", eventMapping.RequiredParameters);
@@ -1006,7 +995,9 @@ function triggerHiddenButtonClick() {{
     {{
         try
         {{
-            // Original handler logic will be added here
+            {changedLine}
+
+            // Add Additional handler logic here
             StateHasChanged();
         }}
         catch (Exception ex)
@@ -1016,7 +1007,7 @@ function triggerHiddenButtonClick() {{
     }}");
 
             _generatedMethods.Add(methodName);
-            _stateVariables.AppendLine(methodBuilder.ToString());
+            _stateMethods.AppendLine(methodBuilder.ToString());
         }
     }
 

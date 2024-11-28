@@ -9,5 +9,6 @@ public class CustomControl
     public string DataLabel { get; set; }  // From data-label attribute
     public List<string> Options { get; set; } = new();  // For dropdowns
     public bool IsGenerated { get; set; } = false;
-    public bool IsDisabled { get; set; }
+    public bool IsDisabled { get; set; } = false;
+    public bool IsSelected { get; set; } = false;
 }

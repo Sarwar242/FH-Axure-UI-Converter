@@ -48,5 +48,6 @@ public class ComponentEvent
     public string TargetEventName { get; set; }
     public bool RequiresStateHasChanged { get; set; }
     public string DefaultHandler { get; set; }
+    public string? Body { get; set; }
     public List<string> RequiredParameters { get; set; } = new List<string>();
 }
