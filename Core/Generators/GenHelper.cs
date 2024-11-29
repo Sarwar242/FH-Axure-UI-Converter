@@ -33,8 +33,8 @@ public static class GenHelper
     {
         if (gridInfo == null) { return default; }
         var model = new ModelInfo();
-        model.Id = gridInfo.ID;
-        model.Name = CapitalizeFirstLetter(gridInfo.ID) + "Model";
+        model.Id = gridInfo.Id;
+        model.Name = CapitalizeFirstLetter(gridInfo.Id) + "Model";
         model.ClassType = ClassTypes.Class;
         model.AccessModifier = "public";
         model.Properties = new List<PropertyInfo>();

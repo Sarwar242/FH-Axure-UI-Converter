@@ -406,7 +406,8 @@ public class AspxParser
                 // Rest of your code remains the same
                 var grid = new GridInfo
                 {
-                    ID = gridPanelPARENT != null ? gridPanelPARENT.GetAttributeValue("id", null) : gridPanel.GetAttributeValue("id", null),
+                    Id = gridPanelPARENT != null ? gridPanelPARENT.GetAttributeValue("id", null) : gridPanel.GetAttributeValue("id", null),
+                    DataLabel = gridPanelPARENT != null ? gridPanelPARENT.GetAttributeValue("data-label", null) : gridPanel.GetAttributeValue("data-label", null),
                     Columns = new List<string>(),
                     ColumnsDataLbls = new List<string>()
                 };
@@ -793,8 +794,9 @@ public class AspxParser
                     }
                     else if (control.Type == "Button")
                     {
-                        control.LabelText = node.SelectSingleNode(".//div[@class='text']//span")?.InnerText.Trim() ??
-                                          node.SelectSingleNode(".//div[@class='text']")?.InnerText.Trim();
+                        control.LabelText = node.SelectSingleNode(".//div[@class and contains(@class, 'text')]//p//span")?.InnerText.Trim() ??
+                                            node.SelectSingleNode(".//div[@class and contains(@class, 'text')]//p")?.InnerText.Trim() ??
+                                            node.SelectSingleNode(".//div[@class and contains(@class, 'text')]")?.InnerText.Trim();
                     }
                 }
 
@@ -843,7 +845,7 @@ public class AspxParser
         if (classes.Contains("text_field")) return "TextBox";
         if (classes.Contains("date")) return "Date";
         if (classes.Contains("droplist")) return "DropDown";
-        if (classes.Contains("button")) return "Button";
+        if (classes.Contains("button") || classes.Contains("primary_button")) return "Button";
         return null;
     }
     #endregion

@@ -46,7 +46,7 @@ public class BlazorComponentGenerator
         #region analysis grid elements
         foreach (var grid in analysis.Grids)
         {
-            var gridId = grid.ID;
+            var gridId = grid.Id;
             var gridModel = GenHelper.CreateGridModel(grid);
             if (gridModel != null)
             {
@@ -171,13 +171,13 @@ function triggerHiddenButtonClick() {{
         builder.AppendLine();
 
         // 5. Grid variables
-        if (analysis.Grids.Count() > 0)
-        {
-            GenerateGridAddUpdateMethods(builder);
-        }
+        //if (analysis.Grids.Count() > 0)
+        //{
+        //    GenerateGridAddUpdateMethods(builder);
+        //}
         foreach (var grid in analysis.Grids)
         {
-            var gridId = grid.ID;
+            var gridId = grid.Id;
             builder.AppendLine($"    private Dictionary<string, string> {gridId}CustomColumnNames = new Dictionary<string, string> {{ {string.Join(", ", grid.Columns.Select(c => $"{{ \"{GenHelper.GetColumnPropName(c)}\", \"{c}\" }}"))} }};");
             builder.AppendLine($"    private List<string> {gridId}SelectedColumns = new List<string> {{ {string.Join(", ", grid.Columns.Select(c => $"\"{GenHelper.GetColumnPropName(c)}\""))} }};");
             builder.AppendLine($"    private Guid {gridId}key = Guid.NewGuid();");
@@ -185,6 +185,7 @@ function triggerHiddenButtonClick() {{
             builder.AppendLine();
 
             GenerateGridMethods(builder, gridId);
+            GenerateGridAddUpdateMethods(builder, gridId);
         }
 
         // 6. OnInitialized lifecycle method
@@ -308,21 +309,22 @@ function triggerHiddenButtonClick() {{
 
     }
      
-    private void GenerateGridAddUpdateMethods(StringBuilder builder)
+    private void GenerateGridAddUpdateMethods(StringBuilder builder, string gridId)
     {
         var grid = _grids.FirstOrDefault();
-        ModelInfo model = new();
-        if (grid != null && _gridModels.Count()>0){
-            model = _gridModels.Where(_ => _.Id.Equals(grid.ID)).FirstOrDefault();
-        }
+        //ModelInfo model = new();
+        //if (grid != null && _gridModels.Count()>0){
+        //    model = _gridModels.Where(_ => _.Id.Equals(grid.ID)).FirstOrDefault();
+        //}
+        var model = _gridModels.Where(_ => _.Id.Equals(gridId)).FirstOrDefault();
         if (grid != null && model!=null)
         {
             builder.AppendLine($@"
     
-            private void AddDataToGrid(){{
-                var newId = Convert.ToInt32(gridModelId);
+            private void AddDataToGrid{gridId}(){{
+                var newId = Convert.ToInt32(grid{gridId}ModelId);
                 newId++;
-                gridModelId = newId.ToString();");
+                grid{gridId}ModelId = newId.ToString();");
 
             builder.AppendLine($@"
     
@@ -339,8 +341,8 @@ function triggerHiddenButtonClick() {{
                 }
                 builder.AppendLine($@"
             }};
-            {grid.ID}key = Guid.NewGuid();
-            {grid.ID}DataList.Add(obj);");
+            {grid.Id}key = Guid.NewGuid();
+            {grid.Id}DataList.Add(obj);");
 
         foreach (var prop in model.Properties.Where(_ => !_.Name.Equals("id", StringComparison.OrdinalIgnoreCase)))
         {
@@ -352,19 +354,19 @@ function triggerHiddenButtonClick() {{
         builder.AppendLine($@"
         }}
 
-        private void UpdateGridData()
+        private void UpdateGrid{gridId}Data()
         {{");
 
         foreach (var prop in model.Properties.Where(_ => !_.Name.Equals("id", StringComparison.OrdinalIgnoreCase)))
         {
             if (_gridColFields.TryGetValue(prop.Name, out var value))
             {
-                builder.AppendLine($@"        {grid.ID}Model.{prop.Name} = {value};");
+                builder.AppendLine($@"        {grid.Id}Model.{prop.Name} = {value};");
             }
         }
 
         builder.AppendLine($@"
-            isUpdate = false;");
+            is{gridId}Update = false;");
 
         foreach (var prop in model.Properties.Where(_ => !_.Name.Equals("id", StringComparison.OrdinalIgnoreCase)))
         {
@@ -387,7 +389,7 @@ function triggerHiddenButtonClick() {{
     {{
         try 
         {{
-            isUpdate = true;
+            is{gridId}Update = true;
             {gridId}Model = {gridId}DataList.Where(_ => _.Id.Equals(value, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
             if ({gridId}Model != null)
             {{");
@@ -454,7 +456,7 @@ function triggerHiddenButtonClick() {{
             }
         }
         builder.AppendLine($@"     
-            isUpdate = false;
+            is{gridId}Update = false;
             StateHasChanged();
         }}
         catch (Exception ex)
@@ -635,13 +637,13 @@ function triggerHiddenButtonClick() {{
                 (control.InnerText.Contains("Add", StringComparison.OrdinalIgnoreCase) || control.InnerText.Contains("Save", StringComparison.OrdinalIgnoreCase)) &&
                 _grids.Count() > 0)
             {
-                GenerateGridActionButton(builder, mapping, allAttributes, content, indent);
+                GenerateGridActionButton(builder, mapping, control.ID, allAttributes, content, indent);
             }
             //else if (mapping.Type.Equals("switch", StringComparison.OrdinalIgnoreCase)) { 
 
             //}
 
-            else if (!ShouldSkipGeneration(mapping, control, customControl))
+            else if (!ShouldSkipGeneration(mapping, control, customControl!))
             {
                 // Generate the component with all attributes
                 builder.AppendLine($"{indent}<{mapping.Type} {allAttributes}>");
@@ -688,22 +690,42 @@ function triggerHiddenButtonClick() {{
         return false;
     }
 
-    private void GenerateGridActionButton(StringBuilder builder, ComponentMapping mapping, string allAttributes, string content, string indent)
+    private void GenerateGridActionButton(StringBuilder builder, ComponentMapping mapping, string controlId, string allAttributes, string content, string indent)
     {
-        builder.AppendLine(@$"{indent}@if(isUpdate){{");
-        builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""UpdateGridData"">");
-        builder.AppendLine(@$"{indent}    Update");
-        builder.AppendLine($"{indent}</{mapping.Type}>");
-        builder.AppendLine(@$"{indent}}}else{{");
-        builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""AddDataToGrid"">");
-        builder.AppendLine(@$"{indent}    {content}");
-        builder.AppendLine($"{indent}</{mapping.Type}>");
-        builder.AppendLine(@$"{indent}}}");
+        var buttonDataLabel = _customControls.FirstOrDefault(c => c.Id.Equals(controlId))?.DataLabel ?? "";
+        var buttonPrefix = buttonDataLabel.Split('_').Last();
 
-        _variables.Add(new VariableInfo("isUpdate", "bool", "false", "private", false));
-        _variables.Add(new VariableInfo("gridModelId", "string", @"""1""", "private", false));
+        var matchingGrid = _grids.FirstOrDefault(g => g.DataLabel?.Split('_').Contains(buttonPrefix) ?? false);
+        if (matchingGrid == null) return;
+
+        var updateButtonExists = _customControls.Any(c => {
+            var isMatchingPrefix = c.DataLabel?.Split('_')?.LastOrDefault()?.Equals(buttonPrefix, StringComparison.OrdinalIgnoreCase) ?? false;
+            var containsUpdate = c.DataLabel?.Contains("update", StringComparison.OrdinalIgnoreCase) ?? false;
+            return isMatchingPrefix && containsUpdate;
+        });
+
+        if (updateButtonExists)
+        {
+            builder.AppendLine(@$"{indent}@if(is{matchingGrid.Id}Update){{");
+            builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""UpdateGrid{matchingGrid.Id}Data"">");
+            builder.AppendLine(@$"{indent}    Update");
+            builder.AppendLine($"{indent}</{mapping.Type}>");
+            builder.AppendLine(@$"{indent}}}else{{");
+            builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""AddDataToGrid{matchingGrid.Id}"">");
+            builder.AppendLine(@$"{indent}    {content}");
+            builder.AppendLine($"{indent}</{mapping.Type}>");
+            builder.AppendLine(@$"{indent}}}");
+            _variables.Add(new VariableInfo($"is{matchingGrid.Id}Update", "bool", "false", "private", false));
+        }
+        else
+        {
+            builder.AppendLine(@$"{indent}<{mapping.Type} {allAttributes} @onclick=""AddDataToGrid{matchingGrid.Id}"">");
+            builder.AppendLine(@$"{indent}    {content}");
+            builder.AppendLine($"{indent}</{mapping.Type}>");
+        }
+
+        _variables.Add(new VariableInfo($"grid{matchingGrid.Id}ModelId", "string", @"""1""", "private", false));
     }
-
     private void GenerateContainerControl(StringBuilder builder, ControlInfo control, ComponentMapping mapping, string indent)
     {
         var controlId = control.Attributes.GetValueOrDefault("id", "");
@@ -766,7 +788,7 @@ function triggerHiddenButtonClick() {{
 
         // Check if this is a grid container
         return dataLabel.Contains("grid") &&
-               _grids.Where(_=>_.ID.Equals(controlId)).Count()>0;
+               _grids.Where(_=>_.Id.Equals(controlId)).Count()>0;
     }
 
 
