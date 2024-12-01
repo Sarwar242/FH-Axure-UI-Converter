@@ -41,7 +41,7 @@ public class BlazorComponentGenerator
         _customControls.AddRange(analysis.CustomControls);
         _openPanel = false;
         var componentBuilder = new StringBuilder();
-        pageName = GetPageName(analysis, isPopup);
+        pageName = GenHelper.GetPageName(analysis.OriginalFilePath ?? "", isPopup);
         // Generate component structure
         #region analysis grid elements
         foreach (var grid in analysis.Grids)
@@ -86,7 +86,7 @@ public class BlazorComponentGenerator
     private void GenerateComponentBody(StringBuilder builder, AnalysisResult analysis, bool isPopup)
     {
         var pageTitle = GetPageTitle(analysis, isPopup);
-        var pageName = GetPageName(analysis, isPopup);
+        var pageName = GenHelper.GetPageName(analysis.OriginalFilePath??"", isPopup);
 
         // Add NavMenu for non-popup components
         if (!isPopup)
@@ -124,11 +124,11 @@ public class BlazorComponentGenerator
 
         builder.AppendLine("    </div>");
         builder.AppendLine("</div>");
-        builder.AppendLine($"<button type=\"submit\" style=\"visibility:hidden;\" id=\"{formId}\" @onclick=\"SaveData\"></button>");
+        builder.AppendLine($"<button type=\"submit\" style=\"visibility:hidden;\" id=\"{formId}Submit\" @onclick=\"SaveData\"></button>");
         builder.AppendLine("</form>");
         builder.AppendLine($@"<script>   
 function triggerHiddenButtonClick() {{       
-    document.getElementById(""{formId}"").click();
+    document.getElementById(""{formId}Submit"").click();
 }}
 </script>");
     }
@@ -875,18 +875,6 @@ function triggerHiddenButtonClick() {{
         var combined = string.Join(" ", words);
 
         return Regex.Replace(combined, "(?<=[a-z])(?=[A-Z])", " ");
-    }
-
-    private string GetPageName(AnalysisResult analysis, bool isPopup)
-    {
-        // Extract page title from analysis or generate from path
-        var fileName = Path.GetFileNameWithoutExtension(analysis.OriginalFilePath ?? "");
-        var words = fileName.Split('_')
-    .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower())
-    .ToList();
-        var combined = string.Join("", words);
-
-        return combined+"UI";
     }
 
     private string GenerateControlVariables(ControlInfo control, ComponentMapping mapping)

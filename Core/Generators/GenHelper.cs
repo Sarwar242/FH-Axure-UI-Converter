@@ -15,6 +15,16 @@ public static class GenHelper
 
         return char.ToUpper(str[0]) + str.Substring(1);
     }
+    
+    public static string LowerValue(string v)
+    {
+        if (string.IsNullOrEmpty(v))
+        {
+            return v;
+        }
+
+        return v.ToLower();
+    }
     public static string GetColumnPropName(string str)
     {
         if (string.IsNullOrEmpty(str))
@@ -66,5 +76,17 @@ public static class GenHelper
             model.Properties.AddRange(propInfos);
 
         return model;
+    }
+
+    public static string GetPageName(string OriginalFilePath, bool isPopup)
+    {
+        // Extract page title from analysis or generate from path
+        var fileName = Path.GetFileNameWithoutExtension(OriginalFilePath ?? "");
+        var words = fileName.Split('_')
+    .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower())
+    .ToList();
+        var combined = string.Join("", words);
+
+        return combined + "UI";
     }
 }

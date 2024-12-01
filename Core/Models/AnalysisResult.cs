@@ -15,7 +15,6 @@ public class AnalysisResult
 
     // Extended UI Elements
     public List<ButtonInfo> Buttons { get; set; } = new List<ButtonInfo>();
-    public List<FormElementInfo> FormElements { get; set; } = new List<FormElementInfo>();
     public List<NavigationInfo> NavigationElements { get; set; } = new List<NavigationInfo>();
 
     // Layout Information
@@ -28,48 +27,9 @@ public class AnalysisResult
     public List<EventHandlerInfo> EventHandlers { get; set; } = new List<EventHandlerInfo>();
 
     // Legacy/Compatibility Properties
-    public List<string> PageDirectives { get; set; } = new List<string>();
     public List<CustomControl> CustomControls { get; set; } = new List<CustomControl>();
-    public List<string> ContentPlaceholders { get; set; } = new List<string>();
     public CodeBehindAnalysis? CodeBehindAnalysis { get; set; }
-
-    // Additional Analysis Properties
-    public Dictionary<string, List<ValidationRule>> ValidationRules { get; set; } = new Dictionary<string, List<ValidationRule>>();
-    public Dictionary<string, List<string>> Dependencies { get; set; } = new Dictionary<string, List<string>>();
-    public List<PopupInfo> Popups { get; set; } = new List<PopupInfo>();
-    public List<GridLayoutInfo> GridLayouts { get; set; } = new List<GridLayoutInfo>();
-    public Dictionary<string, string> PageMetadata { get; set; } = new Dictionary<string, string>();
-    public UIStateInfo UIState { get; set; } = new UIStateInfo();
-}
-
-public class ValidationRule
-{
-    public string ControlId { get; set; }
-    public string RuleType { get; set; }
-    public string ErrorMessage { get; set; }
-    public string Condition { get; set; }
-    public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
-}
-
-public class PopupInfo
-{
-    public string Id { get; set; }
-    public string Title { get; set; }
-    public string TriggerControlId { get; set; }
-    public bool IsModal { get; set; }
-    public List<string> ContentControls { get; set; } = new List<string>();
-    public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();
-    public List<ButtonInfo> Actions { get; set; } = new List<ButtonInfo>();
-}
-
-public class GridLayoutInfo
-{
-    public string Id { get; set; }
-    public string ContainerId { get; set; }
-    public List<string> Areas { get; set; } = new List<string>();
-    public Dictionary<string, string> ColumnDefinitions { get; set; } = new Dictionary<string, string>();
-    public Dictionary<string, string> RowDefinitions { get; set; } = new Dictionary<string, string>();
-    public List<GridItemInfo> Items { get; set; } = new List<GridItemInfo>();
+    public List<FormSection>? Sections { get; set; }
 }
 
 public class GridItemInfo
@@ -80,25 +40,6 @@ public class GridItemInfo
     public string Row { get; set; }
     public string ColumnSpan { get; set; }
     public string RowSpan { get; set; }
-}
-
-public class UIStateInfo
-{
-    public Dictionary<string, bool> Visibility { get; set; } = new Dictionary<string, bool>();
-    public Dictionary<string, bool> EnabledState { get; set; } = new Dictionary<string, bool>();
-    public Dictionary<string, string> DefaultValues { get; set; } = new Dictionary<string, string>();
-    public List<DependencyRule> DependencyRules { get; set; } = new List<DependencyRule>();
-    public Dictionary<string, List<string>> ValidationGroups { get; set; } = new Dictionary<string, List<string>>();
-}
-
-public class DependencyRule
-{
-    public string SourceControlId { get; set; }
-    public string TargetControlId { get; set; }
-    public string DependencyType { get; set; }
-    public string Condition { get; set; }
-    public string Action { get; set; }
-    public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
 }
 
 public class FunctionInfo

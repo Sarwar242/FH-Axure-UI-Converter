@@ -295,7 +295,7 @@
       "Name": "Button",
       "Type": "button",
       "Description": "Action button",
-      "HasLabelText": true,
+      "HasLabelText": false,
       "HtmlClasses": [ "button", "primary_button" ],
       "DefaultAttributes": {
         "class": "btn btn-sm btn-outline-info"
