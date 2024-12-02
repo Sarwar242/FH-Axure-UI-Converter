@@ -322,7 +322,7 @@ public class CustomAspxParser
             {
                 var text = cell.SelectSingleNode(".//div[contains(@class, 'text')]")?.InnerText?.Trim();
                 if (!string.IsNullOrEmpty(text) && !text.Equals("Edit", StringComparison.OrdinalIgnoreCase)
-                    && !text.Equals("Delete", StringComparison.OrdinalIgnoreCase))
+                    && !text.Equals("Delete", StringComparison.OrdinalIgnoreCase) && !text.Equals("Remove", StringComparison.OrdinalIgnoreCase))
                 {
                     columns.Add(text);
                 }
@@ -343,7 +343,8 @@ public class CustomAspxParser
             foreach (var cell in cells)
             {
                 var label = cell.GetAttributeValue("data-label", "");
-                if (!string.IsNullOrEmpty(label) && !label.Contains("edit") && !label.Contains("delete"))
+                if (!string.IsNullOrEmpty(label) && !label.Contains("edit") && 
+                    !label.Contains("delete") && !label.Contains("remove"))
                 {
                     labels.Add(label.Substring(5)); // Remove "cell_" prefix
                 }

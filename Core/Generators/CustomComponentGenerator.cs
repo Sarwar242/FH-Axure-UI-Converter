@@ -199,6 +199,12 @@ public class CustomComponentGenerator
         builder.AppendLine($@"        OnFHEditClick=""OnGrid{grid.Id}Edit""");
         builder.AppendLine($@"        OnFHDeleteClick=""OnGrid{grid.Id}Delete"" />");
         builder.AppendLine($@"</div>");
+
+        _variables.Add(new VariableInfo($"{grid.Id}DataList", $"List<{GenHelper.CapitalizeFirstLetter(grid.Id)}Model>", $"new List<{GenHelper.CapitalizeFirstLetter(grid.Id)}Model>()", "private", false));
+        _variables.Add(new VariableInfo($"{grid.Id}Model", $"{GenHelper.CapitalizeFirstLetter(grid.Id)}Model", $"new {GenHelper.CapitalizeFirstLetter(grid.Id)}Model()", "private", false));
+        _variables.Add(new VariableInfo($"{grid.Id}key", "Guid", "new Guid()", "private", false));
+        _variables.Add(new VariableInfo($"grid{grid.Id}ModelId", "string", "\"1\"", "private", false));
+        _variables.Add(new VariableInfo($"is{grid.Id}Update", "bool", "false", "private", false));
     }
 
     private void GenerateGridButtons(StringBuilder builder, FormSection section)
@@ -226,13 +232,13 @@ public class CustomComponentGenerator
         {
             builder.AppendLine($@"    public class {GenHelper.CapitalizeFirstLetter(grid.Id)}Model
     {{
-        public string Id {{ get; set; }} = string.Empty;");
+        public string Id {{ get; set; }}");
 
             // Add properties for each column in the grid
             foreach (var column in grid.Columns)
             {
                 var propertyName = GenHelper.GetColumnPropName(column);
-                builder.AppendLine($"        public string {propertyName} {{ get; set; }} = string.Empty;");
+                builder.AppendLine($"        public string? {propertyName} {{ get; set; }}");
             }
 
             builder.AppendLine("    }");
@@ -257,11 +263,6 @@ public class CustomComponentGenerator
             // Grid state variables
             builder.AppendLine($"    private Dictionary<string, string> {grid.Id}CustomColumnNames = new Dictionary<string, string> {{ {string.Join(", ", grid.Columns.Select(c => $"{{\"{GenHelper.GetColumnPropName(c)}\", \"{c}\"}}"))} }};");
             builder.AppendLine($"    private List<string> {grid.Id}SelectedColumns = new List<string> {{ {string.Join(", ", grid.Columns.Select(c => $"\"{GenHelper.GetColumnPropName(c)}\""))} }};");
-            builder.AppendLine($"    private Guid {grid.Id}key = Guid.NewGuid();");
-            builder.AppendLine($"    private List<{GenHelper.CapitalizeFirstLetter(grid.Id)}Model> {grid.Id}DataList = new();");
-            builder.AppendLine($"    private {GenHelper.CapitalizeFirstLetter(grid.Id)}Model {grid.Id}Model = new();");
-            builder.AppendLine($"    private bool is{grid.Id}Update = false;");
-            builder.AppendLine($"    private string grid{grid.Id}ModelId = \"1\";");
             builder.AppendLine();
 
             // Generate CRUD methods for grid
