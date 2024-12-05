@@ -61,12 +61,7 @@ public class AspxParser
                 {
                     continue;
                 }
-                //if (childNode.GetAttributeValue("id", "") != "baseId" &&
-                //childNode.GetAttributeValue("class", "").Contains("ax_default", StringComparison.OrdinalIgnoreCase) &&
-                //(HasChildWithDataLabel(childNode, "logout")|| HasChildWithDataLabel(childNode, "mainmenu")))
-                //{
-                //    continue;
-                //}         
+                       
                 if (ShouldSkipByDataLabel(childNode))
                 {
                     continue;

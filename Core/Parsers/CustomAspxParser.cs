@@ -57,7 +57,7 @@ public class CustomAspxParser
     private List<HtmlNode> IdentifyPanels(HtmlNode root)
     {
         var panels = new List<HtmlNode>();
-        var potentialPanels = root.SelectNodes("//*[contains(@class, 'box_1') or contains(@data-label, 'pnl_')]");
+        var potentialPanels = root.SelectNodes("//*[contains(@data-label, 'pnl_')]");
 
         if (potentialPanels == null) return panels;
 
@@ -66,8 +66,9 @@ public class CustomAspxParser
             // Skip if panel has a skip label
             var dataLabel = panel.GetAttributeValue("data-label", "").ToLower();
             if (_skipLabels.Contains(dataLabel)) continue;
-            if (IsEffectivelyEmpty(panel)) continue;
+            if (IsEffectivelyEmpty(panel) && !dataLabel.Contains("pnl_")) continue;
 
+       
             // Check if followed by empty box
             var nextSibling = panel.NextSibling;
             while (nextSibling != null && nextSibling.NodeType != HtmlNodeType.Element)
@@ -92,23 +93,24 @@ public class CustomAspxParser
     private List<GridInfo> IdentifyGrids(HtmlNode root)
     {
         var grids = new List<GridInfo>();
-        var gridNodes = root.SelectNodes("//div[contains(@data-label, 'grid')]");
+        var gridNodes = root.SelectNodes("//script[@type='axure-repeater-template']");
 
         if (gridNodes == null) return grids;
 
         foreach (var gridNode in gridNodes)
         {
             // Look for repeater template
-            var template = gridNode.SelectSingleNode(".//script[@type='axure-repeater-template']");
+            var template = gridNode.ParentNode.SelectSingleNode(".//script[@type='axure-repeater-template']");
             if (template != null)
             {
+                var gridPanel = gridNode.ParentNode.ParentNode.ParentNode.ParentNode;
                 var scriptContent = template.InnerHtml;
                 var tempDoc = new HtmlDocument();
                 tempDoc.LoadHtml(scriptContent);
                 var grid = new GridInfo
                 {
-                    Id = gridNode.Id,
-                    DataLabel = gridNode.GetAttributeValue("data-label", ""),
+                    Id = gridPanel.Id ?? gridNode.Id,
+                    DataLabel = gridPanel.GetAttributeValue("data-label", "") ?? gridNode.GetAttributeValue("data-label", ""),
                     Columns = ExtractGridColumns(tempDoc),
                     ColumnsDataLbls = ExtractGridColumnLabels(tempDoc)
                 };
@@ -227,7 +229,9 @@ public class CustomAspxParser
             LabelId = labelNode.Id,
             DataLabel = inputNode.ParentNode.GetAttributeValue("data-label", ""),
             LabelText = ExtractLabelText(labelNode),
+            Attributes = ExtractAttributes(inputNode.ParentNode),
             IsDisabled = inputNode.ParentNode.GetAttributeValue("class", "").Contains("disabled"),
+            IsHidden = inputNode.ParentNode.GetAttributeValue("class", "").Contains("ax_default_hidden"),
             Name = DetermineControlType(inputNode),
             Type = DetermineControlType(inputNode)
         };
@@ -242,7 +246,27 @@ public class CustomAspxParser
 
         return control;
     }
+    private Dictionary<string, string> ExtractAttributes(HtmlNode node)
+    {
+        var attributes = new Dictionary<string, string>();
 
+        foreach (var attribute in node.Attributes)
+        {
+            if (attribute.Name.Equals("id", StringComparison.OrdinalIgnoreCase) && attribute.Value.Equals("base", StringComparison.OrdinalIgnoreCase))
+                attributes[attribute.Name] = "baseId";
+            else
+                attributes[attribute.Name] = attribute.Value;
+        }
+
+        // Extract additional metadata from classes
+        var classes = node.GetAttributeValue("class", "").Split(' ');
+        if (classes.Contains("disabled"))
+        {
+            attributes["Enabled"] = "false";
+        }
+
+        return attributes;
+    }
     private string DetermineControlType(HtmlNode node)
     {
         var tagName = node.Name.ToLower();
@@ -336,17 +360,24 @@ public class CustomAspxParser
     {
         var labels = new List<string>();
         var cells = template.DocumentNode.SelectNodes(".//div[contains(@class, 'box_1')]")
-            ?.Where(n => n.GetAttributeValue("data-label", "").StartsWith("cell_"));
+            ?.Where(n => n.GetAttributeValue("data-label", "").StartsWith("cell"));
 
         if (cells != null)
         {
             foreach (var cell in cells)
             {
                 var label = cell.GetAttributeValue("data-label", "");
-                if (!string.IsNullOrEmpty(label) && !label.Contains("edit") && 
-                    !label.Contains("delete") && !label.Contains("remove"))
+                if (!string.IsNullOrEmpty(label) && 
+                    !label.Contains("edit",StringComparison.OrdinalIgnoreCase) && 
+                    !label.Contains("delete", StringComparison.OrdinalIgnoreCase) && 
+                    !label.Contains("remove", StringComparison.OrdinalIgnoreCase))
                 {
-                    labels.Add(label.Substring(5)); // Remove "cell_" prefix
+                    if (label.StartsWith("cell_"))
+                        labels.Add(label.Substring(5));
+                    else if (label.StartsWith("cell"))
+                        labels.Add(label.Substring(4));
+                    else
+                        labels.Add(label);
                 }
             }
         }
@@ -368,12 +399,20 @@ public class CustomAspxParser
 
         // Find the next grid node after current panel
         var nextGridNode = currentPanel.SelectSingleNode("following::div[contains(@data-label, 'grid')][1]");
+        if (nextGridNode == null) {
+            var scriptNodes = currentPanel.SelectNodes("//script[@type='axure-repeater-template']");
+            if (scriptNodes != null && scriptNodes.Count > 0)
+            {
+                nextGridNode = scriptNodes[0];
+            }
+        };
         if (nextGridNode == null) return null;
 
         // If there's no next panel, this grid belongs to current panel
         if (nextPanel == null)
         {
-            return grids.FirstOrDefault(g => g.Id == nextGridNode.Id);
+            var nextGridNodeId = nextGridNode.ParentNode.ParentNode.ParentNode.ParentNode.Id ?? nextGridNode.Id;
+            return grids.FirstOrDefault(g => g.Id == nextGridNodeId);
         }
 
         // Check if grid comes before next panel
@@ -406,9 +445,9 @@ public class CustomAspxParser
 
     private HtmlNode FindButtonBetween(HtmlNode panel, string buttonText, string buttonLabel)
     {
-        var xpath = $"following::div[contains(@class, 'button') or contains(@class, 'primary_button')]" +
-                   $"[contains(translate(., 'abcdefghijklmnopqrstuvwxyz', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'), '{buttonText}') " +
-                   $"or contains(@data-label, '{buttonLabel}')][1]";
+        var xpath = $"following::div[contains(translate(@class, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'button') or contains(translate(@class, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'primary_button')]" +
+                   $"[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{buttonText.ToLower()}') " +
+                   $"or contains(translate(@data-label, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{buttonLabel.ToLower()}')][1]";
         return panel.SelectSingleNode(xpath);
     }
 

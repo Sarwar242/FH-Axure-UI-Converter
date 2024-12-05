@@ -5,33 +5,19 @@
       "Type": "UXC_TextBox",
       "Description": "Standard text input component",
       "HasLabelText": true,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
       "HtmlClasses": [ "text_field" ],
       "DefaultAttributes": {
-        "Enable": "true"
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "@bind-value": "{id}",
+        "Enable": "IsEnable{id}"
       },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id",
-          "Required": true
-        },
-
-        "class": {
-          "SourceAttribute": "class",
-          "TargetAttribute": "CssClass",
-          "Transformer": "AppendCssClass"
-        }
-      },
-      "Events": [
-        {
-          "EventName": "OnChanged",
-          "SourceAttribute": "onchange",
-          "TargetEventName": "ValueChanged",
-          "RequiresStateHasChanged": true
-        }
-      ],
+      "Events": [],
       "RequiredVariables": [
-        "{id}:string:\"\""
+        "{id}:string:\"\"",
+        "IsEnable{id}:bool:true"
       ]
     },
     {
@@ -39,33 +25,20 @@
       "Type": "UXC_TxtArea",
       "Description": "Standard text input component",
       "HasLabelText": true,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
       "HtmlClasses": [ "text_field" ],
       "DefaultAttributes": {
-        "Disable": "false"
-      },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id",
-          "Required": true
-        },
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "@bind-value": "{id}",
+        "Disable": "IsDisable{id}"
 
-        "class": {
-          "SourceAttribute": "class",
-          "TargetAttribute": "CssClass",
-          "Transformer": "AppendCssClass"
-        }
       },
-      "Events": [
-        {
-          "EventName": "OnChanged",
-          "SourceAttribute": "onchange",
-          "TargetEventName": "ValueChanged",
-          "RequiresStateHasChanged": true
-        }
-      ],
+      "Events": [],
       "RequiredVariables": [
-        "{id}:string:\"\""
+        "{id}:string:\"\"",
+        "IsDisable{id}:bool:false"
       ]
     },
     {
@@ -73,33 +46,19 @@
       "Type": "UXC_Date",
       "Description": "Standard date input component",
       "HasLabelText": true,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
       "HtmlClasses": [ "text_field" ],
       "DefaultAttributes": {
-        "Enable": "true"
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "@bind-value": "{id}",
+        "Enable": "IsEnable{id}"
       },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id",
-          "Required": true
-        },
-
-        "class": {
-          "SourceAttribute": "class",
-          "TargetAttribute": "CssClass",
-          "Transformer": "AppendCssClass"
-        }
-      },
-      "Events": [
-        {
-          "EventName": "OnChanged",
-          "SourceAttribute": "onchange",
-          "TargetEventName": "ValueChanged",
-          "RequiresStateHasChanged": true
-        }
-      ],
+      "Events": [],
       "RequiredVariables": [
-        "{id}:string:\"\""
+        "{id}:string:\"dd/mm/yyyy\"",
+        "IsEnable{id}:bool:true"
       ]
     },
     {
@@ -107,33 +66,15 @@
       "Type": "UXC_File",
       "Description": "Standard file input component",
       "HasLabelText": false,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
       "HtmlClasses": [ "text_field" ],
       "DefaultAttributes": {
-        "MultipleFile": "false"
+        "MultipleFile": "hasMultipleFile{id}"
       },
-      "AttributeMappings": {
-        //"id": {
-        //  "SourceAttribute": "id",
-        //  "TargetAttribute": "Id",
-        //  "Required": true
-        //},
-
-        "class": {
-          "SourceAttribute": "class",
-          "TargetAttribute": "CssClass",
-          "Transformer": "AppendCssClass"
-        }
-      },
-      "Events": [
-        {
-          "EventName": "OnChanged",
-          "SourceAttribute": "onchange",
-          "TargetEventName": "ValueChanged",
-          "RequiresStateHasChanged": true
-        }
-      ],
+      "Events": [],
       "RequiredVariables": [
-        "{id}:string:\"\""
+        "hasMultipleFile{id}:bool:true"
       ]
     },
     {
@@ -141,21 +82,18 @@
       "Type": "UXC_AmountToWord",
       "Description": "Amount input for currency amount that shows in words!",
       "HasLabelText": true,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
       "HtmlClasses": [ "text_field", "ax_default" ],
       "DefaultAttributes": {
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "@bind-value": "{id}",
         "DecimalPoint": "2",
-        "Enable": "true"
-      },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id",
-          "Required": true
-        }
+        "Enable": "IsEnable{id}"
       },
       "RequiredVariables": [
         "{id}:decimal:0.00m",
-        "IsHid{id}:string:\"\"",
         "IsEnable{id}:bool:true"
       ]
     },
@@ -164,21 +102,18 @@
       "Type": "UXC_Amount",
       "Description": "Numeric input for currency amount!",
       "HasLabelText": true,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
       "HtmlClasses": [ "text_field", "ax_default" ],
       "DefaultAttributes": {
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "@bind-value": "{id}",
         "DecimalPoint": "2",
-        "Enable": "true"
-      },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id",
-          "Required": true
-        }
+        "Enable": "IsEnable{id}"
       },
       "RequiredVariables": [
         "{id}:decimal:0.00m",
-        "IsHid{id}:string:\"\"",
         "IsEnable{id}:bool:true"
       ]
     },
@@ -187,20 +122,17 @@
       "Type": "UXC_Number",
       "Description": "Numeric input for Numbers",
       "HasLabelText": true,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
       "HtmlClasses": [ "text_field", "ax_default" ],
       "DefaultAttributes": {
-        "Enable": "true"
-      },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id",
-          "Required": true
-        }
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "@bind-value": "{id}",
+        "Enable": "IsEnable{id}"
       },
       "RequiredVariables": [
-        "{id}:decimal:0.00m",
-        "IsHid{id}:string:\"\"",
+        "{id}:string:\"\"",
         "IsEnable{id}:bool:true"
       ]
     },
@@ -209,32 +141,21 @@
       "Type": "UXC_Dynamic_Dropdown",
       "Description": "Dynamic dropdown with data binding",
       "HasLabelText": true,
+      "HasInnerText": false,
+      "NeedVisibilityBlock": false,
       "HtmlClasses": [ "droplist" ],
       "DefaultAttributes": {
-        "Enable": "true"
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "@bind-Value": "{id}",
+        "DataSource": "{id}List",
+        "Enable": "IsEnable{id}"
       },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id"
-        },
-        "ls_sql2populateoptions": {
-          "SourceAttribute": "LS_SQL2PopulateOptions",
-          "TargetAttribute": "ProcedureName"
-        }
-      },
-      "Events": [
-        {
-          "EventName": "OnSelectedIndexChanged",
-          "SourceAttribute": "onselectedindexchanged",
-          "TargetEventName": "SelectedValueChanged",
-          "RequiresStateHasChanged": true
-        }
-      ],
+      "Events": [],
       "RequiredVariables": [
         "{id}:string:\"\"",
-        "UXCDropDown{id}:List<Dropdown>:new()",
-        "{id}Key:Guid:Guid.NewGuid()"
+        "{id}List:List<Dropdown>:new()",
+        "IsEnable{id}:bool:true"
       ]
     },
     {
@@ -242,26 +163,45 @@
       "Type": "UXC_DataGrid",
       "Description": "Data grid with CRUD operations",
       "HasLabelText": true,
+      "HasInnerText": false,
+      "NeedVisibilityBlock": true,
       "HtmlClasses": [ "grid" ],
       "DefaultAttributes": {
-        "Enable": "true"
+        "Id": "{id}",
+        "@key": "@({id}key)",
+        "Label_Text": "{lbl_Txt}",
+        "BtnColValue": "Id",
+        "ShowEditButton": "true",
+        "ShowDeleteButton": "true",
+        "ShowViewButton": "false",
+        "EnableSelection": "true",
+        "SelectedColumns": "{id}SelectedColumns",
+        "CustomColumnNames": "{id}CustomColumnNames",
+        "DataSource": "{id}DataList",
+        "OnFHEditClick": "OnGrid{id}Edit",
+        "OnFHDeleteClick": "OnGrid{id}Delete"
       },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id"
+      "Events": [
+        {
+          "EventName": "OnEdit",
+          "SourceAttribute": "Edit",
+          "TargetEventName": "OnGrid{id}Edit",
+          "RequiredParameters": [ "string value" ],
+          "Body": "",
+          "RequiresStateHasChanged": true
         },
-        "onselectedindexchanged": {
-          "SourceAttribute": "onselectedindexchanged",
-          "TargetAttribute": "OnFHEditClick"
-        },
-        "onrowdeleting": {
-          "SourceAttribute": "onrowdeleting",
-          "TargetAttribute": "OnFHDeleteClick"
+        {
+          "EventName": "OnDelete",
+          "SourceAttribute": "Delete",
+          "TargetEventName": "OnGrid{id}Delete",
+          "RequiredParameters": [ "string value" ],
+          "Body": "",
+          "RequiresStateHasChanged": true
         }
-      },
+      ],
       "RequiredVariables": [
-        "IsHid{id}:bool:false",
+        "IsVisible{id}:bool:true",
+        "IsEnableSelection{id}:bool:true",
         "{id}SelectedColumns:List<string>:new()",
         "{id}CustomColumnNames:Dictionary<string,string>:new()",
         "{id}Key:Guid:Guid.NewGuid()"
@@ -272,18 +212,10 @@
       "Type": "div",
       "Description": "Container panel with title",
       "HasLabelText": true,
+      "HasInnerText": true,
+      "NeedVisibilityBlock": true,
       "IsContainer": true,
       "HtmlClasses": [ "box_1", "box_2", "box_3" ],
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "id"
-        },
-        "groupingtext": {
-          "SourceAttribute": "GroupingText",
-          "TargetAttribute": "data-title"
-        }
-      },
       "Styles": {
         "default": "row border my-2"
       },
@@ -296,23 +228,26 @@
       "Type": "button",
       "Description": "Action button",
       "HasLabelText": false,
+      "HasInnerText": true,
+      "NeedVisibilityBlock": false,
       "HtmlClasses": [ "button", "primary_button" ],
       "DefaultAttributes": {
-        "class": "btn btn-sm btn-outline-info"
+        "Id": "{id}",
+        "class": "btn btn-sm btn-outline-info",
+        "disabled": "IsDisabled{id}"
       },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "id"
-        },
-        "onclick": {
-          "SourceAttribute": "onclick",
-          "TargetAttribute": "@onclick"
+      "Events": [
+        {
+          "EventName": "OnClick",
+          "SourceAttribute": "Click",
+          "TargetEventName": "@onclick",
+          "RequiredParameters": [],
+          "Body": "",
+          "RequiresStateHasChanged": true
         }
-      },
+      ],
       "RequiredVariables": [
-        "IsHid{id}:bool:false",
-        "IsEnable{id}:bool:false"
+        "IsDisabled{id}:bool:false"
       ]
     },
     {
@@ -320,20 +255,16 @@
       "Type": "UXC_Switch",
       "Description": "Switch/Checkbox input component",
       "HasLabelText": true,
+      "HasInnerText": false,
+      "NeedVisibilityBlock": false,
       "HtmlClasses": [ "checkbox", "ax_default" ],
       "DefaultAttributes": {
-        "Enable": "true"
-      },
-      "AttributeMappings": {
-        "id": {
-          "SourceAttribute": "id",
-          "TargetAttribute": "Id",
-          "Required": true
-        },
-        "checked": {
-          "SourceAttribute": "checked",
-          "TargetAttribute": "IsChecked"
-        }
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        //"@bind-value": "{id}",
+        "Enable": "IsEnable{id}",
+        "IsChecked": "{id}",
+        "IsVisible": "IsVisible{id}"
       },
       "Events": [
         {
@@ -347,7 +278,7 @@
       ],
       "RequiredVariables": [
         "{id}:bool:false",
-        "IsHid{id}:string:\"\"",
+        "IsVisible{id}:bool:true",
         "IsEnable{id}:bool:true"
       ]
     }

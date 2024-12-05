@@ -1,6 +1,5 @@
 ﻿using Core.Models;
 using Newtonsoft.Json;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Core.Generators;
@@ -44,11 +43,35 @@ public class CustomComponentGenerator
         {
             foreach (var grid in analysis.Grids)
             {
-                if (grid.ColumnsDataLbls.Contains(control.DataLabel, StringComparer.OrdinalIgnoreCase))
+                // Find the best match among grid column labels
+                var bestMatchWithDataLabel = grid.ColumnsDataLbls
+                    .Select(columnLabel => new
+                    {
+                        ColumnLabel = columnLabel,
+                        MatchScore = GenHelper.CalculateStringSimilarity(control.DataLabel, columnLabel)
+                    })
+                    .OrderByDescending(x => x.MatchScore)
+                    .FirstOrDefault();     
+                
+                var bestMatchWithInnerText = grid.Columns
+                    .Select(columnLabel => new
+                    {
+                        ColumnLabel = grid.ColumnsDataLbls[grid.Columns.IndexOf(columnLabel)],
+                        MatchScore = GenHelper.CalculateStringSimilarity(control.LabelText, columnLabel)
+                    })
+                    .OrderByDescending(x => x.MatchScore)
+                    .FirstOrDefault();
+
+                var bestMatch = bestMatchWithDataLabel.MatchScore > bestMatchWithInnerText.MatchScore ?
+                                    bestMatchWithDataLabel : bestMatchWithInnerText;
+
+                // Set a threshold for matching (e.g., 0.8 or 80% similarity)
+                if (bestMatch != null && bestMatch.MatchScore >= 0.8)
                 {
-                    var columnName = grid.Columns[grid.ColumnsDataLbls.FindIndex(x =>
-                                                string.Equals(x, control.DataLabel, StringComparison.OrdinalIgnoreCase))];
-                    if (!_gridColumnFields.ContainsKey(columnName)){
+                    var columnName = grid.Columns[grid.ColumnsDataLbls.IndexOf(bestMatch.ColumnLabel)];
+
+                    if (!_gridColumnFields.ContainsKey(columnName))
+                    {
                         _gridColumnFields[columnName] = control.Id;
                     }
                 }
@@ -68,12 +91,13 @@ public class CustomComponentGenerator
 
     private void GenerateComponentBody(StringBuilder builder, AnalysisResult analysis, string pageName)
     {
-        var pagePathName = GenHelper.GetPageName(analysis.OriginalFilePath, false);
+        var pageTitle = GenHelper.GetPageTitle(analysis.OriginalFilePath ?? "", false);
+        var pagePathName = GenHelper.GetPageName(analysis.OriginalFilePath??"", false);
         var formId = pagePathName.Replace("UI", "Form");
         // Add NavMenu
         builder.AppendLine($@"<NavMenu ShowButtonDelete=""false"" 
                       ShowButtonView=""false"" 
-                      PageName=""{pageName}"" 
+                      PageName=""{pageTitle}"" 
                       ShowButtonRefresh=""true"" 
                       OnFHBtnRefreshClick=""Refresh"" 
                       OnFHBtnAddClick=""AddBtnClick"" 
@@ -138,50 +162,21 @@ public class CustomComponentGenerator
     private void GenerateField(StringBuilder builder, CustomControl field)
     {
         var componentType = MapToBlazorComponent(field.Type);
-        _variables.Add(new VariableInfo(field.Id, GetVariableType(field.Type), GetDefaultValue(field.Type)));
+        var mappedComponent = GenHelper.FindComponentMapping(field, _customControlMappings);
+        var mappedAttributes = GetMappedAtrributes(field, mappedComponent);
+        GenerateMappedControlVariables(field, mappedComponent);
 
         builder.AppendLine($@"    <div class=""form-group col-3 my-2"">");
-        if(field.Type == "File")
+        builder.Append($@"         <{mappedComponent.Type ?? componentType} ");
+
+        // Output attributes as key="value"
+        foreach (var attribute in mappedAttributes)
         {
-            builder.AppendLine($@"        <{componentType}");
-            builder.AppendLine($@"                     Visible=""{GenHelper.LowerValue(Convert.ToString(!field.IsDisabled))}"">");
-            builder.AppendLine($@"        </{componentType}>");
+            builder.Append($"{attribute.Key}=\"{attribute.Value}\" ");
         }
-        else { 
-            builder.AppendLine($@"        <{componentType} Id=""{field.Id}""");
-            builder.AppendLine($@"                     Label_Text=""{field.LabelText}""");
-            builder.AppendLine($@"                     @bind-Value=""{field.Id}""");
-
-            if (field.Type == "DropDown" && field.Options != null)
-            {
-                builder.AppendLine($@"                     DataSource=""{field.Id}List""");
-                _variables.Add(new VariableInfo($"{field.Id}List ", "List<Dropdown>", "new()", "private", false));
-
-                Dictionary<string, string> dict = new();
-                foreach (var option in field.Options)
-                {
-                    if (option.ToLower().Contains("-select"))
-                    {
-                        dict.Add(option, "");
-                    }
-                    else
-                    {
-                        dict.Add(option, $"{option.ToLower()}");
-                    }
-                }
-                _ddVendor.Add($"{field.Id}List", dict);
-            }
-
-            if(field.Type == "TextArea")
-            {
-                builder.AppendLine($@"                     Disable=""{GenHelper.LowerValue(Convert.ToString(field.IsDisabled))}"">");
-            }
-            else
-            {
-                builder.AppendLine($@"                     Enable=""{GenHelper.LowerValue(Convert.ToString(!field.IsDisabled))}"">");
-            }
-            builder.AppendLine($@"        </{componentType}>");
-        }
+        builder.AppendLine($@">");
+        
+        builder.AppendLine($@"        </{mappedComponent.Type ?? componentType}>");
         builder.AppendLine($@"    </div>");
     }
 
@@ -290,57 +285,7 @@ public class CustomComponentGenerator
         _ => "UXC_TextBox"
     };
 
-    private string GetVariableType(string controlType) => controlType switch
-    {
-        "Amount" => "decimal?",
-        "AmountToWord" => "decimal?",
-        "Switch" => "bool",
-        _ => "string"
-    };
-
-    private string GetDefaultValue(string controlType) => controlType switch
-    {
-
-        "Date" => "\"dd/mm/yyyy\"",
-        "Amount" => "0m",
-        "AmountToWord" => "0m",
-        "Switch" => "false",
-        _ => "\"\""
-    };
-
     // Grid variables and methods generation
-    private void GenerateGridVariables(StringBuilder builder, GridInfo grid)
-    {
-        // Column mappings and selected columns
-        builder.AppendLine($"    private Dictionary<string, string> {grid.Id}CustomColumnNames = new Dictionary<string, string> {{ {string.Join(", ", grid.Columns.Select(c => $"\"{GenHelper.GetColumnPropName(c)}\", \"{c}\""))} }};");
-        builder.AppendLine($"    private List<string> {grid.Id}SelectedColumns = new List<string> {{ {string.Join(", ", grid.Columns.Select(c => $"\"{GenHelper.GetColumnPropName(c)}\""))} }};");
-
-        // Grid state variables
-        builder.AppendLine($"    private Guid {grid.Id}key = Guid.NewGuid();");
-        builder.AppendLine($"    private List<{GenHelper.CapitalizeFirstLetter(grid.Id)}Model> {grid.Id}DataList = new();");
-        builder.AppendLine($"    private {GenHelper.CapitalizeFirstLetter(grid.Id)}Model {grid.Id}Model = new();");
-        builder.AppendLine($"    private bool is{grid.Id}Update = false;");
-        builder.AppendLine($"    private string grid{grid.Id}ModelId = \"1\";");
-        builder.AppendLine();
-
-        // Generate grid model class
-        GenerateGridModelClass(builder, grid);
-    }
-
-    private void GenerateGridModelClass(StringBuilder builder, GridInfo grid)
-    {
-        builder.AppendLine($@"    public class {GenHelper.CapitalizeFirstLetter(grid.Id)}Model
-    {{
-        public string Id {{ get; set; }} = string.Empty;");
-
-        foreach (var column in grid.Columns)
-        {
-            builder.AppendLine($"        public string {GenHelper.GetColumnPropName(column)} {{ get; set; }} = string.Empty;");
-        }
-
-        builder.AppendLine("    }");
-        builder.AppendLine();
-    }
 
     private void GenerateGridMethods(StringBuilder builder, GridInfo grid)
     {
@@ -492,6 +437,9 @@ public class CustomComponentGenerator
 
     private void GenerateStandardMethods(StringBuilder builder, string pageName)
     {
+
+        var pagePathName = GenHelper.GetPageName(pageName ?? "", false);
+        var formId = pagePathName.Replace("UI", "Form");
         // Add button click handler
         builder.AppendLine(@"    private async Task AddBtnClick()
     {
@@ -504,7 +452,7 @@ public class CustomComponentGenerator
     {{
         try
         {{
-            bool isValid = await _jsruntime.InvokeAsync<bool>(""globalFunctions.validateFormById"", ""{pageName}Form"");
+            bool isValid = await _jsruntime.InvokeAsync<bool>(""globalFunctions.validateFormById"", ""{formId}"");
             if (isValid)
             {{
                 await _jsruntime.InvokeVoidAsync(""globalFunctions.fireToastEvent"", ""bg-success"", ""Success"", ""Saved Successfully"");
@@ -613,5 +561,70 @@ public class CustomComponentGenerator
         }
 
         return ddBuilder.ToString();
+    }
+
+    private Dictionary<string, string> GetMappedAtrributes(CustomControl field, ComponentMapping mapping)
+    {
+        var mappedAttributes = new Dictionary<string, string>();
+
+        // Add default attributes from mapping
+        foreach (var defaultAttr in mapping.DefaultAttributes)
+        {
+            mappedAttributes[defaultAttr.Key] = defaultAttr.Value
+                .Replace("{id}", field.Id)
+                .Replace("{lbl_Txt}", field.LabelText);
+        }
+
+        return mappedAttributes;
+    }
+
+    private void GenerateMappedControlVariables(CustomControl control, ComponentMapping mapping)
+    {
+        var variables = new StringBuilder();
+
+        foreach (var varTemplate in mapping.RequiredVariables)
+        {
+            var varDef = varTemplate.Replace("{id}", control.Id);
+            var parts = varDef.Split(':');
+
+            if (control.IsDisabled)
+            {
+                if (parts[0].Contains("IsEnable", StringComparison.OrdinalIgnoreCase))
+                    parts[2] = "false";                
+                if (parts[0].Contains("IsDisable", StringComparison.OrdinalIgnoreCase))
+                    parts[2] = "true";
+            }
+                        
+            
+            if (control.IsHidden)
+            {
+                if (parts[0].Contains("IsVisible", StringComparison.OrdinalIgnoreCase))
+                    parts[2] = "false";                
+            }
+
+            if (parts.Length == 3 && !_variables.Any(_=>_.Name.Equals(parts[0],StringComparison.OrdinalIgnoreCase)))
+            {
+                var variableInfo = new VariableInfo(parts[0], parts[1], parts[2],"private", false);
+                _variables.Add(variableInfo);
+            }
+        }
+
+
+        if (control.Type == "DropDown" && control.Options != null)
+        {
+            Dictionary<string, string> dict = new();
+            foreach (var option in control.Options)
+            {
+                if (option.ToLower().Contains("-select"))
+                {
+                    dict.Add(option, "");
+                }
+                else
+                {
+                    dict.Add(option, $"{option.ToLower()}");
+                }
+            }
+            _ddVendor.Add($"{control.Id}List", dict);
+        }
     }
 }

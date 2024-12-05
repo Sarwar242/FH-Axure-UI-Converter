@@ -85,7 +85,7 @@ public class BlazorComponentGenerator
 
     private void GenerateComponentBody(StringBuilder builder, AnalysisResult analysis, bool isPopup)
     {
-        var pageTitle = GetPageTitle(analysis, isPopup);
+        var pageTitle = GenHelper.GetPageTitle(analysis.OriginalFilePath??"", isPopup);
         var pageName = GenHelper.GetPageName(analysis.OriginalFilePath??"", isPopup);
 
         // Add NavMenu for non-popup components
@@ -168,13 +168,6 @@ function triggerHiddenButtonClick() {{
         }
         builder.AppendLine();
         
-        builder.AppendLine();
-
-        // 5. Grid variables
-        //if (analysis.Grids.Count() > 0)
-        //{
-        //    GenerateGridAddUpdateMethods(builder);
-        //}
         foreach (var grid in analysis.Grids)
         {
             var gridId = grid.Id;
@@ -187,9 +180,7 @@ function triggerHiddenButtonClick() {{
             GenerateGridMethods(builder, gridId);
             GenerateGridAddUpdateMethods(builder, gridId);
         }
-
         // 6. OnInitialized lifecycle method
-        //{/*string.Join("\n                ", analysis.Grids.Select(g => $"await Load{g.ID}();"))*/true}
         builder.AppendLine($@"
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {{
@@ -207,17 +198,6 @@ function triggerHiddenButtonClick() {{
             }}
         }}
     }}");
-
-        // 7. InitializeSession method
-    //    builder.AppendLine(@"    private async Task InitializeSession()
-    //{
-    //    objTRSSession.BranchId = await _LocalSession.GetItem(""Home_Branch_Id"");
-    //    objTRSSession.UserId = await _LocalSession.GetItem(""UserId"");
-    //    objTRSSession.FunctionId = await _LocalSession.GetItem(""Function_Id"");
-    //    objTRSSession.TransDate = await _LocalSession.GetItem(""Trans_Date"");
-    //    objTRSSession.ServiceTypeId = await _LocalSession.GetItem(""Service_Type_Id"");
-    //    objTRSSession.LocalCurrId = await _LocalSession.GetItem(""Local_Currency_Id"");
-    //}");
 
         // 8. Common methods
         builder.AppendLine(@"    private async Task AddBtnClick()
@@ -834,47 +814,7 @@ function triggerHiddenButtonClick() {{
             attributes.Add($"{defaultAttr.Key}=\"{defaultAttr.Value}\"");
         }
 
-        // Process mapped attributes
-        foreach (var attrMapping in mapping.AttributeMappings)
-        {
-            if (control.Attributes.TryGetValue(attrMapping.Value.SourceAttribute.ToLower(), out var value))
-            {
-                if (attrMapping.Value.Transformer != null)
-                {
-                    value = TransformAttributeValue(value, attrMapping.Value.Transformer);
-                }
-                attributes.Add($"{attrMapping.Value.TargetAttribute}=\"{value}\"");
-            }
-            else if (attrMapping.Value.Required)
-            {
-                attributes.Add($"{attrMapping.Value.TargetAttribute}=\"{attrMapping.Value.DefaultValue}\"");
-            }
-        }
-
         return string.Join(" ", attributes);
-    }
-
-    private string TransformAttributeValue(string value, string transformer)
-    {
-        return transformer switch
-        {
-            "AppendCssClass" => $"form-control {value}",
-            "ToLower" => value.ToLower(),
-            "ToBoolean" => value.ToLower() == "true" ? "true" : "false",
-            _ => value
-        };
-    }
-
-    private string GetPageTitle(AnalysisResult analysis, bool isPopup)
-    {
-        // Extract page title from analysis or generate from path
-        var fileName = Path.GetFileNameWithoutExtension(analysis.OriginalFilePath ?? "");
-        var words = fileName.Split('_')
-    .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower())
-    .ToList();
-        var combined = string.Join(" ", words);
-
-        return Regex.Replace(combined, "(?<=[a-z])(?=[A-Z])", " ");
     }
 
     private string GenerateControlVariables(ControlInfo control, ComponentMapping mapping)
