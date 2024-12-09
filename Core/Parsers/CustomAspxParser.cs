@@ -270,19 +270,22 @@ public class CustomAspxParser
     private string DetermineControlType(HtmlNode node)
     {
         var tagName = node.Name.ToLower();
+        var datalabel = node.ParentNode.GetAttributeValue("data-label", "").ToLower();
         var type = node.GetAttributeValue("type", "").ToLower();
         var classes = node.GetAttributeValue("class", "").ToLower().Split(' ');
 
-        return (tagName, type, classes) switch
+        return (tagName, type, classes, datalabel) switch
         {
-            var (_, t, _) when t == "date" => "Date",
-            var (_, t, _) when t == "number" => "Number",
-            var (_, t, _) when t == "file" => "File",
-            var (tag, _, _) when tag == "textarea" => "TextArea",
-            var (_, _, c) when c.Contains("droplist") => "DropDown",
-            var (tag, _, _) when tag.Contains("select") => "DropDown",
-            var (_, _, c) when c.Contains("checkbox") => "Switch",
-            var (_, _, c) when c.Contains("text_field") => "TextBox",
+            var (_, t, _, _) when t == "date" => "Date",
+            var (_, t, _, _) when t == "email" => "Email",
+            var (_, _, _, dl) when dl.Contains("email", StringComparison.OrdinalIgnoreCase) => "Email",
+            var (_, t, _, _) when t == "number" => "Number",
+            var (_, t, _, _) when t == "file" => "File",
+            var (tag, _, _, _) when tag == "textarea" => "TextArea",
+            var (_, _, c, _) when c.Contains("droplist") => "DropDown",
+            var (tag, _, _, _) when tag.Contains("select") => "DropDown",
+            var (_, _, c, _) when c.Contains("checkbox") => "Switch",
+            var (_, _, c, _) when c.Contains("text_field") => "TextBox",
             _ => "TextBox"
         };
     }
@@ -337,7 +340,7 @@ public class CustomAspxParser
     private List<string> ExtractGridColumns(HtmlDocument template)
     {
         var columns = new List<string>();
-        var headerCells = template.DocumentNode.SelectNodes(".//div[contains(@class, 'box_1')]")?
+        var headerCells = template.DocumentNode.SelectNodes(".//div[contains(@class, 'box_')]")?
             .Where(n => n.SelectSingleNode(".//div[contains(@class, 'text')]") != null);
 
         if (headerCells != null)
@@ -359,15 +362,15 @@ public class CustomAspxParser
     private List<string> ExtractGridColumnLabels(HtmlDocument template)
     {
         var labels = new List<string>();
-        var cells = template.DocumentNode.SelectNodes(".//div[contains(@class, 'box_1')]")
-            ?.Where(n => n.GetAttributeValue("data-label", "").StartsWith("cell"));
+        var cells = template.DocumentNode.SelectNodes(".//div[contains(@class, 'box_')]");
 
         if (cells != null)
         {
             foreach (var cell in cells)
             {
+                var text = cell.SelectSingleNode(".//div[contains(@class, 'text')]")?.InnerText?.Trim();
                 var label = cell.GetAttributeValue("data-label", "");
-                if (!string.IsNullOrEmpty(label) && 
+                if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(text) && 
                     !label.Contains("edit",StringComparison.OrdinalIgnoreCase) && 
                     !label.Contains("delete", StringComparison.OrdinalIgnoreCase) && 
                     !label.Contains("remove", StringComparison.OrdinalIgnoreCase))

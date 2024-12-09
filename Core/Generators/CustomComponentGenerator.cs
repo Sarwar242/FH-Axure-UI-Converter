@@ -9,8 +9,6 @@ public class CustomComponentGenerator
     private readonly ComponentMappingConfig _customControlMappings;
     private readonly HashSet<VariableInfo> _variables = new();
     private readonly Dictionary<string, string> _gridColumnFields = new(); // Maps grid columns to form fields
-    private readonly StringBuilder _stateVariables = new();
-    private bool _openPanel = false;
     private Dictionary<string, Dictionary<string, string>> _ddVendor = new();
 
     public CustomComponentGenerator(string mappingFilePath)
@@ -24,7 +22,6 @@ public class CustomComponentGenerator
         _variables.Clear();
         _ddVendor.Clear();
         _gridColumnFields.Clear();
-        _openPanel = false;
 
         // Map form fields to grid columns
         MapFieldsToGridColumns(analysis);
@@ -62,13 +59,18 @@ public class CustomComponentGenerator
                     .OrderByDescending(x => x.MatchScore)
                     .FirstOrDefault();
 
-                var bestMatch = bestMatchWithDataLabel.MatchScore > bestMatchWithInnerText.MatchScore ?
+                var bestMatch = bestMatchWithDataLabel?.MatchScore > bestMatchWithInnerText?.MatchScore ?
                                     bestMatchWithDataLabel : bestMatchWithInnerText;
-
+                if (bestMatchWithDataLabel?.MatchScore > 0.8)
+                {
+                    bestMatch = bestMatchWithDataLabel;
+                }
                 // Set a threshold for matching (e.g., 0.8 or 80% similarity)
                 if (bestMatch != null && bestMatch.MatchScore >= 0.8)
                 {
-                    var columnName = grid.Columns[grid.ColumnsDataLbls.IndexOf(bestMatch.ColumnLabel)];
+                    var columnName = "";
+                    if (grid.ColumnsDataLbls.Contains(bestMatch.ColumnLabel))
+                        columnName = grid.Columns[grid.ColumnsDataLbls.IndexOf(bestMatch.ColumnLabel)];
 
                     if (!_gridColumnFields.ContainsKey(columnName))
                     {
@@ -615,7 +617,7 @@ public class CustomComponentGenerator
             Dictionary<string, string> dict = new();
             foreach (var option in control.Options)
             {
-                if (option.ToLower().Contains("-select"))
+                if (option.ToLower().Contains("select"))
                 {
                     dict.Add(option, "");
                 }

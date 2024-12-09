@@ -21,6 +21,27 @@
       ]
     },
     {
+      "Name": "Email",
+      "Type": "UXC_Email",
+      "Description": "Standard email input component",
+      "HasLabelText": true,
+      "NeedVisibilityBlock": false,
+      "HasInnerText": false,
+      "HtmlClasses": [ "text_field" ],
+      "DefaultAttributes": {
+        "Id": "{id}",
+        "Label_Text": "{lbl_Txt}",
+        "Required": "false",
+        "@bind-value": "{id}",
+        "Enable": "IsEnable{id}"
+      },
+      "Events": [],
+      "RequiredVariables": [
+        "{id}:string:\"\"",
+        "IsEnable{id}:bool:true"
+      ]
+    },
+    {
       "Name": "TextArea",
       "Type": "UXC_TxtArea",
       "Description": "Standard text input component",
