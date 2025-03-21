@@ -24,7 +24,7 @@ A web-based migration tool that converts .NET Framework 4.x Web Forms applicatio
 
 ```bash
 # Clone this repository
-git clone https://github.com/yourusername/code-conversion-tool.git
+git clone https://github.com/Sarwar242/FH-Axure-UI-Converter.git
 # Navigate to project directory
 cd code-conversion-tool
 
