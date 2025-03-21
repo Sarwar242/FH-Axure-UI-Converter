@@ -1,53 +1,80 @@
-Code Conversion Tool
-.NET Framework 4.x Web Forms to .NET 8 Blazor Migration
-A powerful web-based conversion tool designed to automate the migration of legacy .NET Framework Web Forms applications to modern .NET 8 Blazor applications.
-Overview
-This tool streamlines the migration process by analyzing and transforming ASP.NET Web Forms code into Blazor components and pages. It leverages advanced code analysis techniques to handle complex migrations while preserving business logic and functionality.
-Features
+# Code Conversion Tool
 
-Comprehensive Analysis: Parses and analyzes Web Forms (.aspx, .ascx) files along with their code-behind files
-Intelligent Code Transformation: Converts Web Forms controls to Blazor components
-Code-Behind Logic Migration: Transforms event handlers and page lifecycle methods to Blazor paradigms
-Master Page Conversion: Converts master pages to Blazor layouts
-Server Control Mapping: Maps ASP.NET server controls to equivalent Blazor components
-ViewState and PostBack Handling: Strategically replaces ViewState with appropriate Blazor state management patterns
-Validation Control Conversion: Transforms validation controls to Blazor validation
+A web-based migration tool that converts .NET Framework 4.x Web Forms applications to .NET 8 Blazor applications.
 
-Technology Stack
+## 🚀 Features
 
-.NET MVC Web Application: Built as a web-based tool for easy access
-HtmlAgilityPack: Used for parsing and manipulating HTML/ASPX documents
-Roslyn Compiler Platform: Powers C# code analysis and transformation
-Advanced Chain Processing: Implements a sophisticated pipeline of processors for step-by-step conversion
+- **Web Forms to Blazor Conversion**: Transform .aspx files into Blazor components
+- **Code-Behind Migration**: Convert event handlers and page logic to Blazor paradigms
+- **Validation Framework**: Transform validation controls to Blazor validation
 
-How It Works
+## 🛠️ Tech Stack
 
-Upload: Submit your .NET 4.x Web Forms project
-Analysis: The tool examines your codebase, identifying components, dependencies, and patterns
-Transformation: Code is processed through specialized conversion chains
-Output: Download the generated .NET 8 Blazor application structure
+- **.NET MVC Web Application**
+- **HtmlAgilityPack**: For HTML/ASPX document parsing
+- **Roslyn Compiler Platform**: Powers code analysis and transformation
+- **Advanced Chain Processing**: Sophisticated conversion pipeline architecture
 
-Getting Started
+## 📋 Prerequisites
 
-Clone the repository
-Configure the application settings
-Build and run the MVC application
-Navigate to the tool's web interface
-Upload your Web Forms project and start the conversion process
+- .NET 8 SDK
+- Visual Studio 2022 or later (recommended)
 
-Requirements
+## 🔧 Installation
 
-.NET 8 SDK
-Visual Studio 2022 or later (recommended)
-Sufficient memory for processing large applications
+```bash
+# Clone this repository
+git clone https://github.com/yourusername/code-conversion-tool.git
+# Navigate to project directory
+cd code-conversion-tool
 
-Limitations
+# Build the solution
+dotnet build
 
-Complex custom controls may require manual adjustments
-Third-party control integration needs additional configuration
-Business logic with heavy dependency on Web Forms lifecycle may need refactoring
+# Run the application
+dotnet run --project src/WebApp/WebApp.csproj
+```
 
-Contribution
+## 💻 Usage
+
+1. Access the tool via your browser at `http://localhost:5000`
+2. Upload your .NET 4.x Web Forms project (.zip or folder)
+3. Configure conversion settings
+4. Start the conversion process
+5. Download the generated .NET 8 Blazor application
+
+## 🔄 How It Works
+
+The conversion process follows these steps:
+
+1. **Analysis**: Scans all Web Forms files and their code-behind
+2. **Structure Mapping**: Creates a blueprint of the Blazor application structure
+3. **HTML Conversion**: Transforms ASPX markup to Razor syntax
+4. **Code Transformation**: Converts C# code-behind to Blazor component code
+5. **Project Generation**: Creates a complete .NET 8 Blazor project
+
+## ⚠️ Limitations
+
+- Complex custom controls may require manual adjustments
+- Third-party control integration needs additional configuration
+- Business logic with heavy dependency on Web Forms lifecycle may need refactoring
+
+## 🤝 Contributing
+
 Contributions are welcome! Please feel free to submit a Pull Request.
-License
-MIT License
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## 📞 Contact
+
+Your Name - [@your_twitter](https://twitter.com/your_twitter) - email@example.com
+
+Project Link: [https://github.com/yourusername/code-conversion-tool](https://github.com/yourusername/code-conversion-tool)
