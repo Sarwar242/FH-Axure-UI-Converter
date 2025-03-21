@@ -26,8 +26,7 @@ A web-based migration tool that converts .NET Framework 4.x Web Forms applicatio
 # Clone this repository
 git clone https://github.com/Sarwar242/FH-Axure-UI-Converter.git
 # Navigate to project directory
-cd code-conversion-tool
-
+cd FH-Axure-UI-Converter
 # Build the solution
 dotnet build
 
