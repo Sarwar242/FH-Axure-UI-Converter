@@ -74,6 +74,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 📞 Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_twitter) - email@example.com
-
-Project Link: [https://github.com/yourusername/code-conversion-tool](https://github.com/yourusername/code-conversion-tool)
+Sarwar Hossain - [@your_twitter](https://sarwar.com.bd) - email@example.com
